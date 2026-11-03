@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import backArrow from "@/assets/cart/back-arrow.svg";
 import backCircle from "@/assets/cart/back-circle.svg";
@@ -17,7 +18,8 @@ import { toParams } from "@/features/catalog/search";
 import { readApiError } from "@/shared/api/errors";
 import type { CartLine } from "@/shared/domain/contracts";
 import { formatEth, mulEth } from "@/shared/domain/money";
-import { totalsOf, useCart, useCartActions } from "./api";
+import { useCart, useCartActions } from "./api";
+import { useCheckCoupon, useQuote } from "./quote";
 
 const RELATED_COUNT = 5;
 
@@ -196,7 +198,23 @@ function Row({ label, value, className = "" }: { label: string; value: string; c
 }
 
 function Summary({ lines, isGuest }: { lines: CartLine[]; isGuest: boolean }) {
-  const totals = totalsOf(lines);
+  const [draft, setDraft] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const quote = useQuote(lines, appliedCoupon);
+  const checkCoupon = useCheckCoupon(lines);
+  const couponError = checkCoupon.isError
+    ? (readApiError(checkCoupon.error).fields?.couponCode ?? readApiError(checkCoupon.error).message)
+    : null;
+  const totals = quote.data;
+  const pending = "—";
+
+  function submitCoupon(event: FormEvent) {
+    event.preventDefault();
+    const code = draft.trim();
+    if (code === "") return;
+    checkCoupon.mutate(code, { onSuccess: setAppliedCoupon });
+  }
+
   return (
     <aside
       aria-labelledby="cart-summary-title"
@@ -210,7 +228,7 @@ function Summary({ lines, isGuest }: { lines: CartLine[]; isGuest: boolean }) {
       </div>
       <h2 className="sr-only lg:hidden">Resumo da carteira</h2>
 
-      <div className="flex flex-col gap-2">
+      <form onSubmit={submitCoupon} className="flex flex-col gap-2">
         <label htmlFor="cart-coupon" className="hidden text-sm font-bold leading-4 text-foreground lg:block">
           Código promocional
         </label>
@@ -218,32 +236,49 @@ function Summary({ lines, isGuest }: { lines: CartLine[]; isGuest: boolean }) {
           <input
             id="cart-coupon"
             type="text"
-            disabled
+            value={draft}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              if (checkCoupon.isError) checkCoupon.reset();
+            }}
+            aria-invalid={couponError !== null}
+            aria-describedby={couponError ? "cart-coupon-error" : undefined}
             placeholder="Digite o código promocional..."
-            title="Cupons chegam na próxima etapa."
-            className="min-w-0 flex-1 bg-transparent text-[13px] leading-[22px] text-foreground placeholder:text-kurio-secondary disabled:cursor-not-allowed lg:text-xs lg:leading-4"
+            className="min-w-0 flex-1 bg-transparent text-[13px] leading-[22px] text-foreground placeholder:text-kurio-secondary lg:text-xs lg:leading-4"
           />
           <button
-            type="button"
-            disabled
-            title="Cupons chegam na próxima etapa."
-            className="h-[50px] w-[97px] shrink-0 rounded-[40px] bg-gradient-to-r from-primary/55 to-primary text-[15px] font-bold leading-4 text-foreground disabled:cursor-not-allowed lg:h-10 lg:w-[102px] lg:rounded-none lg:rounded-r-[3px] lg:bg-primary lg:bg-none lg:text-ink"
+            type="submit"
+            disabled={checkCoupon.isPending || draft.trim() === ""}
+            className="h-[50px] w-[97px] shrink-0 rounded-[40px] bg-gradient-to-r from-primary/55 to-primary text-[15px] font-bold leading-4 text-foreground disabled:cursor-not-allowed disabled:opacity-60 lg:h-10 lg:w-[102px] lg:rounded-none lg:rounded-r-[3px] lg:bg-primary lg:bg-none lg:text-ink"
           >
             Aplicar
           </button>
         </div>
-      </div>
+        {couponError ? (
+          <p id="cart-coupon-error" role="alert" className="text-xs leading-4 text-text-coral">
+            {couponError}
+          </p>
+        ) : appliedCoupon ? (
+          <p className="text-xs leading-4 text-text-accent">Cupom {appliedCoupon.toUpperCase()} aplicado.</p>
+        ) : null}
+      </form>
+
+      {quote.isError && !totals ? (
+        <p role="alert" className="text-sm text-text-coral">
+          {readApiError(quote.error).message}
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-3 text-[15px] leading-4 text-foreground">
-        <Row label="Subtotal" value={formatEth(totals.subtotalEth)} className="[&_span:last-child]:text-base lg:[&_span:last-child]:text-lg" />
-        <Row label="Desconto do lançamento" value="(-) 00.00" />
+        <Row label="Subtotal" value={totals ? formatEth(totals.subtotalEth) : pending} className="[&_span:last-child]:text-base lg:[&_span:last-child]:text-lg" />
+        <Row label="Desconto do lançamento" value={totals ? `(-) ${formatEth(totals.discountEth)}` : pending} />
         <div className="flex flex-col items-end">
-          <Row label="Taxa de rede" value={formatEth(totals.networkFeeEth)} className="w-full [&_span:last-child]:text-base lg:[&_span:last-child]:text-lg" />
+          <Row label="Taxa de rede" value={totals ? formatEth(totals.networkFeeEth) : pending} className="w-full [&_span:last-child]:text-base lg:[&_span:last-child]:text-lg" />
           <p className="text-xs leading-4 text-text-accent">Taxa estimada</p>
         </div>
         <div className="flex items-start justify-between font-bold">
           <span className="text-base">Total</span>
-          <span className="text-lg text-text-accent">{formatEth(totals.totalEth)}</span>
+          <span className="text-lg text-text-accent">{totals ? formatEth(totals.totalEth) : pending}</span>
         </div>
       </div>
 

@@ -5,7 +5,6 @@ import { nftDetailQuery } from "@/features/nft/api";
 import { api } from "@/shared/api/client";
 import { queryClient } from "@/shared/api/query-client";
 import { cartViewSchema, type CartLine } from "@/shared/domain/contracts";
-import { addEth, mulEth } from "@/shared/domain/money";
 import {
   parseGuestItems,
   removeGuestItem,
@@ -14,9 +13,6 @@ import {
 } from "./guest-cart";
 
 export const cartQueryKey = ["cart"] as const;
-
-/** Taxa de rede estimada do frame. A cotação real chega na Task 10. */
-export const NETWORK_FEE_ETH = "0.016";
 
 const serverCartQuery = queryOptions({
   queryKey: [...cartQueryKey, "server"] as const,
@@ -111,19 +107,6 @@ export function useCartCount(): number {
     [raw],
   );
   return user ? (server.data ?? 0) : guestCount;
-}
-
-export type CartTotals = { subtotalEth: string; discountEth: string; networkFeeEth: string; totalEth: string };
-
-/** Soma de tela. Sem simular desconto: o cupom e a cotação real são da Task 10. */
-export function totalsOf(lines: CartLine[]): CartTotals {
-  const subtotalEth = lines.reduce((sum, line) => addEth(sum, mulEth(line.priceEth, line.quantity)), "0");
-  return {
-    subtotalEth,
-    discountEth: "0",
-    networkFeeEth: NETWORK_FEE_ETH,
-    totalEth: addEth(subtotalEth, NETWORK_FEE_ETH),
-  };
 }
 
 export function useCartActions(isGuest: boolean) {
