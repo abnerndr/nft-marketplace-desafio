@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import type { CartLine } from "@/shared/domain/contracts";
 import { getDatabase, saveDatabase } from "../db";
+import { schedulePriceChange } from "../socket";
 import { userFromRequest } from "./auth";
 import { editionsOf, findNftBySlug, tokenIdOf } from "./nfts";
 import { applyCoupon } from "./quote";
@@ -116,6 +117,8 @@ export const cartHandlers = [
       cart.items.push({ slug, editionId, quantity });
     }
     saveDatabase();
+    // Cenário `price-changed`: o primeiro item do carrinho muda de preço pelo socket.
+    schedulePriceChange(user.id);
 
     return HttpResponse.json(
       { item: cart.items.find((item) => item.slug === slug && item.editionId === editionId) },

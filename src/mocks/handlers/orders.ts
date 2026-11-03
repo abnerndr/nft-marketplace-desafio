@@ -3,6 +3,7 @@ import { sameOrderAttempt } from "@/features/orders/idempotency";
 import type { Order, OrderItem } from "@/shared/domain/contracts";
 import { getDatabase, saveDatabase } from "../db";
 import { getScenario, ORDER_TIMEOUT_DELAY_MS } from "../scenarios";
+import { notifyOrderUpdated } from "../socket";
 import type { OrderRecord } from "../seed";
 import { userFromRequest } from "./auth";
 import { editionsOf, findNftBySlug, tokenIdOf } from "./nfts";
@@ -188,7 +189,11 @@ export const orderHandlers = [
 
     if (record.status === "pending") {
       record.reads += 1;
-      if (record.reads >= SETTLE_ON_READ) confirm(record);
+      if (record.reads >= SETTLE_ON_READ) {
+        confirm(record);
+        // O servidor também empurra a mudança; o cliente ignora se já a tem.
+        notifyOrderUpdated(record, user.id);
+      }
       saveDatabase();
     }
     return HttpResponse.json(toOrder(record));

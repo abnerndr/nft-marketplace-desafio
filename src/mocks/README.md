@@ -14,7 +14,33 @@ e só se `VITE_ENABLE_MOCKS !== "false"`. `VITE_DEFAULT_SCENARIO` define o cená
 ## Console
 
 `window.__kurio` expõe `reset()`, `setScenario(id)` e `emit(type, payload)`.
-`emit` dispara um `CustomEvent` `kurio:mock` em `window` com `detail: { type, payload }`.
+`emit` dispara um `CustomEvent` `kurio:mock` em `window` com `detail: { type, payload }` e também
+empurra o evento pelo transporte Socket.IO mock (veja abaixo). `emit("nft.updated")` sem `payload`
+sobe 10% no preço do primeiro item do carrinho de cada usuário conectado, com `version + 1`.
+
+## Socket.IO
+
+O cliente (`src/features/realtime/socket.ts`) usa `socket.io-client` de verdade e conecta em
+`VITE_SOCKET_URL` (padrão `wss://realtime.kurio.local`) com `auth: { token }`. O mock
+(`src/mocks/socket.ts`) intercepta esse host com `ws.link` do MSW e `@mswjs/socket.io-binding`.
+
+**Limitação:** o transporte é interceptado pelo MSW no navegador; não há servidor Socket.IO externo.
+Sem o worker ativo (`VITE_ENABLE_MOCKS=false`) o cliente tenta um servidor real. Só há socket com
+sessão: visitante não conecta. O mock não implementa salas, namespaces, ping nem reconexão com
+recuperação de eventos perdidos; o cliente refaz as consultas ao reconectar.
+
+Eventos, ambos com `{ eventId, version, resource, userId? }`:
+
+| Evento | `resource` | Efeito no cliente |
+| --- | --- | --- |
+| `nft.updated` | `{ slug, priceEth, available? }` | Atualiza catálogo, detalhe, carrinho e cotação; mostra aviso de preço. |
+| `order.updated` | `{ id, status, txRef? }` | Atualiza o pedido em cache. Pendente vale versão 1; confirmado e recusado, 2. |
+
+O cliente ignora evento com `userId` diferente do usuário atual, `eventId` repetido e `version` menor
+ou igual à já aplicada (`shouldApplyVersion`). No mock, `nft.updated` grava o preço e a versão do NFT
+no banco e a cotação passa a carregar a maior versão dos itens, então um checkout revisado na versão
+antiga recebe `quote_changed` (409). No cenário `price-changed`, 1,5 s depois de o usuário conectado
+ter um item no carrinho, o mock empurra `nft.updated` do primeiro item (+10%), uma vez por usuário.
 
 ## Cenários
 
@@ -29,7 +55,7 @@ e só se `VITE_ENABLE_MOCKS !== "false"`. `VITE_DEFAULT_SCENARIO` define o cená
 | `session-expired` | Sessão deixa de valer no meio do fluxo. | registrado, muda nas tasks de auth |
 | `validation-conflict` | Servidor devolve erro de validação por campo. | registrado |
 | `coupon-invalid` | Cupom é recusado. | registrado, muda nas tasks de carrinho |
-| `price-changed` | Preço muda entre cotação e confirmação. | registrado |
+| `price-changed` | Preço muda entre cotação e confirmação: a cotação com revisão devolve a versão 2 e taxa 0,03 ETH, e o primeiro item do carrinho sobe 10% por `nft.updated` no Socket.IO. | ativo |
 | `edition-sold-out` | Edição esgota antes do pagamento. | registrado |
 | `order-timeout` | Pedido fica pendente até estourar o tempo. | registrado |
 | `payment-confirmed` | Pagamento é confirmado. | registrado |

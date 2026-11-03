@@ -16,7 +16,8 @@ export function orderQuery(id: string) {
       const { data } = await api.get(`/orders/${encodeURIComponent(id)}`);
       return orderSchema.parse(data);
     },
-    // Sem Socket.IO: enquanto pendente, volta a perguntar ao servidor.
+    // O Socket.IO traz `order.updated`; enquanto pendente, volta a perguntar ao servidor por garantia
+    // (queda do socket, recarga no meio do pedido).
     refetchInterval: (query) => (query.state.data?.status === "pending" ? 1500 : false),
   });
 }

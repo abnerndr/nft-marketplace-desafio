@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import type { Quote } from "@/shared/domain/contracts";
 import { addEth, mulEth, subEth } from "@/shared/domain/money";
+import { maxNftVersion } from "../nft-version";
 import { getScenario } from "../scenarios";
 import { findNftBySlug } from "./nfts";
 
@@ -50,7 +51,8 @@ export type QuoteResult =
 /**
  * Cotação do mock. O preço vem do catálogo, não do cliente. `revision` é a versão que a tela
  * já mostra: no cenário `price-changed`, quem já viu uma versão recebe a versão 2 com taxa
- * maior; sem `revision` (carrinho) a cotação é sempre a versão 1.
+ * maior; sem `revision` (carrinho) a cotação é a versão 1, ou a maior versão de preço dos itens
+ * depois de um `nft.updated`.
  */
 export function quoteFor(items: QuoteItem[], couponCode: string, revision?: number): QuoteResult {
   const subtotalEth = items.reduce((sum, item) => {
@@ -84,7 +86,8 @@ export function quoteFor(items: QuoteItem[], couponCode: string, revision?: numb
       discountEth,
       networkFeeEth,
       totalEth: addEth(subEth(subtotalEth, discountEth), networkFeeEth),
-      version: changed ? 2 : 1,
+      // Um `nft.updated` sobe a versão do item, e a cotação acompanha: a confirmação antiga não passa.
+      version: Math.max(changed ? 2 : 1, maxNftVersion(items.map((item) => item.slug))),
     },
   };
 }

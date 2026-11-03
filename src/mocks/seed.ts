@@ -35,6 +35,10 @@ export type Database = {
   wallets: Record<string, Wallet[]>;
   /** token opaco -> id do usuário. */
   sessions: Record<string, string>;
+  /** slug -> versão do preço. Ausente vale 1; sobe a cada `nft.updated`. */
+  nftVersions?: Record<string, number>;
+  /** Usuários que já receberam a mudança de preço do cenário `price-changed` (uma por sessão). */
+  priceChangedFor?: string[];
 };
 
 type Collection =

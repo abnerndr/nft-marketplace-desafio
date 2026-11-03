@@ -120,6 +120,7 @@ export type CartLine = z.infer<typeof cartLineSchema>;
 export type CartView = z.infer<typeof cartViewSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
 export type Order = z.infer<typeof orderSchema>;
+export type OrderStatus = z.infer<typeof orderStatusSchema>;
 export type OrderItem = z.infer<typeof orderItemSchema>;
 export type User = z.infer<typeof userSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>;

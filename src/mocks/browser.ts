@@ -2,8 +2,9 @@ import { setupWorker } from "msw/browser";
 import { initMockState, resetDatabase, setScenario } from "./db";
 import { handlers } from "./handlers";
 import { isScenarioId, type ScenarioId } from "./scenarios";
+import { emitSocketEvent, socketHandlers } from "./socket";
 
-export const worker = setupWorker(...handlers);
+export const worker = setupWorker(...handlers, ...socketHandlers);
 
 export type KurioMockControls = {
   reset: () => void;
@@ -33,6 +34,7 @@ export async function enableMocks(): Promise<void> {
     },
     emit: (type, payload) => {
       window.dispatchEvent(new CustomEvent(MOCK_EVENT, { detail: { type, payload } }));
+      emitSocketEvent(type, payload);
     },
   };
 

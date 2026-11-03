@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fontsource/roboto-mono": "^5.3.0",
+    "@mswjs/socket.io-binding": "^0.2.0",
     "@tanstack/react-query": "^5.105.3",
     "@tanstack/react-router": "^1.170.46",
     "axios": "^1.21.0",
@@ -25,6 +26,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "shadcn": "^4.23.0",
+    "socket.io-client": "^4.8.4",
     "tw-animate-css": "^1.4.0",
     "zod": "^4.6.7"
   },
@@ -49,5 +51,10 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "overrides": {
+    "@mswjs/socket.io-binding": {
+      "msw": "$msw"
+    }
   }
 }
