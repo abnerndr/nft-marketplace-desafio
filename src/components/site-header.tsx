@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
-import type { FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
 import activeUnderline from "@/assets/header/active-underline.svg";
 import badge from "@/assets/header/badge.svg";
 import cartIcon from "@/assets/header/cart.svg";
@@ -19,6 +20,20 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { q } = useSearch({ strict: false }) as { q?: string };
   const homeActive = pathname === "/";
+  const [searchOpen, setSearchOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (searchOpen) inputRef.current?.focus();
+  }, [searchOpen]);
+
+  function handleSearchKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key === "Escape" && searchOpen) {
+      setSearchOpen(false);
+      toggleRef.current?.focus();
+    }
+  }
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,11 +84,11 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
           <Link to="/" className={navLinkClass}>
             Mercado
           </Link>
-          <Link to="/" search={{ collection: "" }} className={navLinkClass}>
-            Coleções
+          <Link to="/" hash="diario" className={navLinkClass}>
+            Criadores
           </Link>
-          <Link to="/" search={{ collection: "" }} className={navLinkClass}>
-            Artistas
+          <Link to="/" hash="diario" className={navLinkClass}>
+            Aprenda
           </Link>
         </nav>
 
@@ -81,18 +96,29 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
           <form
             role="search"
             onSubmit={handleSearch}
+            onKeyDown={handleSearchKeyDown}
             className="flex items-center gap-2"
           >
-            <input
-              key={q ?? ""}
-              type="search"
-              name="q"
-              defaultValue={q ?? ""}
-              placeholder="Buscar NFTs"
-              aria-label="Buscar NFTs"
-              className="h-8 w-24 border-b border-border-soft bg-transparent text-sm text-foreground placeholder:text-secondary focus:border-primary focus:outline-none sm:w-40"
-            />
-            <button type="submit" aria-label="Buscar" className="shrink-0">
+            {searchOpen ? (
+              <input
+                ref={inputRef}
+                key={q ?? ""}
+                type="search"
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Buscar NFTs"
+                aria-label="Buscar NFTs"
+                className="h-8 w-28 border-b border-border-soft bg-transparent text-sm text-foreground placeholder:text-kurio-secondary focus:border-primary focus:outline-none sm:w-40"
+              />
+            ) : null}
+            <button
+              ref={toggleRef}
+              type={searchOpen ? "submit" : "button"}
+              aria-label={searchOpen ? "Buscar" : "Abrir busca"}
+              aria-expanded={searchOpen}
+              onClick={searchOpen ? undefined : () => setSearchOpen(true)}
+              className="shrink-0"
+            >
               <img src={searchIcon} alt="" width={20} height={20} />
             </button>
           </form>

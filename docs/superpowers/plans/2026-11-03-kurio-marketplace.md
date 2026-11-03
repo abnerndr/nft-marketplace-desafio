@@ -240,7 +240,7 @@ Inclua também arquivos que o shadcn e o template tiverem criado e que façam pa
 
 **Interfaces:**
 - Consumes: `AppProviders` e `router` da Task 1
-- Produces: `SiteHeader` e `SiteFooter`. O root route envolve o `Outlet` com header e footer. Links do header: Início `/`, Mercado `/`, e os rótulos Coleções e Artistas apontam para `/` com search `collection` vazio (não criam rota editorial). Busca do header escreve `q` na search da rota `/`. Ícone de carrinho aponta para `/cart` (a rota pode ser um placeholder `h1` até a Task 9). Entrar aponta para `/login` (placeholder até a Task 5).
+- Produces: `SiteHeader` e `SiteFooter`. O root route envolve o `Outlet` com header e footer. Links do header, na ordem do frame: Início `/`, Mercado `/`, Criadores e Aprenda apontam para `#diario` (não criam rota editorial). A busca do header é o ícone do frame; ao acionar, revela o campo e grava `q` na search da rota `/`. Ícone de carrinho aponta para `/cart` (a rota pode ser um placeholder `h1` até a Task 9). Não hardcode a contagem `6` do frame. Entrar aponta para `/login` (placeholder até a Task 5). O token Kurio `#B39463` não ocupa a variável shadcn `--secondary`; `bg-secondary` permanece superfície escura (`#241612`). O dourado fica em `--color-kurio-secondary`.
 
 - [ ] **Step 1: Ler o header no Figma**
 

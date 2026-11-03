@@ -113,7 +113,7 @@ export function SiteFooter() {
                 name="email"
                 placeholder="digite seu e-mail..."
                 aria-label="E-mail"
-                className="min-w-0 flex-1 bg-transparent px-3 text-sm text-foreground placeholder:text-secondary focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent px-3 text-sm text-foreground placeholder:text-kurio-secondary focus:outline-none"
               />
               <button
                 type="submit"

@@ -13,6 +13,7 @@
     --color-surface-dark: #38220F;
     --color-border-soft: #55321F;
     --color-background-elevated: #FBFBFB;
+    --color-kurio-secondary: #B39463;
 }
 
 @theme inline {
@@ -67,8 +68,8 @@
     --popover-foreground: #F5F1EB;
     --primary: #D28A4C;
     --primary-foreground: var(--color-ink);
-    --secondary: #B39463;
-    --secondary-foreground: var(--color-ink);
+    --secondary: #241612;
+    --secondary-foreground: #F5F1EB;
     --muted: var(--color-surface-dark);
     --muted-foreground: var(--color-text-secondary);
     --accent: var(--color-surface-dark);
