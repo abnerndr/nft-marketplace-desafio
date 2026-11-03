@@ -40,9 +40,11 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
     const value = String(new FormData(event.currentTarget).get("q") ?? "").trim();
     void navigate({
       to: "/",
-      search: (prev: { collection?: string }) => ({
-        collection: prev.collection,
+      hash: "catalogo",
+      search: (prev: Record<string, unknown>) => ({
+        ...prev,
         q: value === "" ? undefined : value,
+        page: undefined,
       }),
     });
   }

@@ -3,6 +3,11 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
+import {
+  catalogSearchSchema,
+  parseSearchString,
+  stringifySearch,
+} from "@/features/catalog/search";
 import { LoginPage } from "@/features/auth/login-page";
 import { RegisterPage } from "@/features/auth/register-page";
 import { requireAuth, safeRedirect } from "@/features/auth/session";
@@ -14,11 +19,6 @@ export type AuthSearch = {
   redirect?: string;
 };
 
-export type HomeSearch = {
-  q?: string;
-  collection?: string;
-};
-
 const rootRoute = createRootRoute({
   component: RootLayout,
 });
@@ -27,11 +27,7 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: HomeRoute,
-  validateSearch: (search: Record<string, unknown>): HomeSearch => ({
-    q: typeof search.q === "string" ? search.q : undefined,
-    collection:
-      typeof search.collection === "string" ? search.collection : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>) => catalogSearchSchema.parse(search),
 });
 
 const cartRoute = createRoute({
@@ -61,7 +57,12 @@ const registerRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([indexRoute, cartRoute, loginRoute, registerRoute]);
 
-export const router = createRouter({ routeTree });
+// Search sem JSON: listas viram parâmetros repetidos (?collection=a&collection=b).
+export const router = createRouter({
+  routeTree,
+  parseSearch: parseSearchString,
+  stringifySearch,
+});
 
 declare module "@tanstack/react-router" {
   interface Register {
