@@ -7,6 +7,7 @@ import cartIcon from "@/assets/header/cart.svg";
 import divider from "@/assets/header/divider.svg";
 import loginIcon from "@/assets/header/login.svg";
 import searchIcon from "@/assets/header/search.svg";
+import { useLogout, useSession } from "@/features/auth/session";
 
 type SiteHeaderProps = {
   cartCount?: number;
@@ -14,6 +15,52 @@ type SiteHeaderProps = {
 
 const navLinkClass =
   "text-base font-normal text-foreground transition-colors hover:text-text-accent whitespace-nowrap";
+
+/** Com sessão: nome da conta e saída. Sem sessão: o botão Entrar do Figma. */
+function AccountControl() {
+  const session = useSession();
+  const signOut = useLogout();
+  const navigate = useNavigate();
+  const user = session.data;
+
+  if (session.isPending) {
+    return <div className="h-[35px] w-[100px]" aria-hidden="true" />;
+  }
+
+  if (!user) {
+    return (
+      <Link
+        to="/login"
+        className="flex h-[35px] w-[100px] items-center justify-center gap-1 rounded-md bg-primary text-base font-medium text-ink"
+      >
+        <span className="flex size-5 items-center justify-center">
+          <img src={loginIcon} alt="" width={18} height={17} className="max-w-none" />
+        </span>
+        Entrar
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <Link
+        to="/account/profile"
+        className="max-w-[140px] truncate text-base font-medium text-foreground hover:text-text-accent"
+      >
+        {user.name}
+      </Link>
+      <button
+        type="button"
+        aria-label="Encerrar sessão"
+        disabled={signOut.isPending}
+        onClick={() => signOut.mutate(undefined, { onSettled: () => void navigate({ to: "/" }) })}
+        className="text-sm font-medium text-text-accent disabled:opacity-60"
+      >
+        Sair
+      </button>
+    </div>
+  );
+}
 
 export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
   const navigate = useNavigate();
@@ -143,15 +190,7 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
             ) : null}
           </Link>
 
-          <Link
-            to="/login"
-            className="flex h-[35px] w-[100px] items-center justify-center gap-1 rounded-md bg-primary text-base font-medium text-ink"
-          >
-            <span className="flex size-5 items-center justify-center">
-              <img src={loginIcon} alt="" width={18} height={17} className="max-w-none" />
-            </span>
-            Entrar
-          </Link>
+          <AccountControl />
         </div>
       </div>
       <div className="mx-auto w-full max-w-[1240px] px-5">

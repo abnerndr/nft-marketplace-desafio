@@ -1,7 +1,7 @@
 import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useSession } from "@/features/auth/session";
-import { nftDetailQuery } from "@/features/nft/api";
+import { isNotFound, nftDetailQuery } from "@/features/nft/api";
 import { api } from "@/shared/api/client";
 import { queryClient } from "@/shared/api/query-client";
 import { cartViewSchema, type CartLine } from "@/shared/domain/contracts";
@@ -26,14 +26,17 @@ const serverCartQuery = queryOptions({
 });
 
 /** Linhas de exibição do visitante: o item guardado mais o detalhe atual do NFT. */
-async function loadGuestLines(raw: string): Promise<CartLine[]> {
+export async function loadGuestLines(raw: string): Promise<CartLine[]> {
   const items = parseGuestItems(raw);
   const lines = await Promise.all(
     items.map(async (item): Promise<CartLine | null> => {
       try {
         const nft = await queryClient.fetchQuery({ ...nftDetailQuery(item.slug), staleTime: 15_000 });
         const edition = nft.editions.find((candidate) => candidate.id === item.editionId);
-        if (!edition) return null;
+        if (!edition) {
+          removeGuestItem(item.slug, item.editionId);
+          return null;
+        }
         return {
           id: `${item.slug}~${item.editionId}`,
           slug: item.slug,
@@ -46,9 +49,13 @@ async function loadGuestLines(raw: string): Promise<CartLine[]> {
           imageUrl: nft.imageUrl,
           priceEth: nft.priceEth,
         };
-      } catch {
-        // NFT que sumiu do catálogo não trava o carrinho inteiro.
-        return null;
+      } catch (error) {
+        // Só 404 tira a linha. Falha transitória sobe: o carrinho não pode aparecer vazio.
+        if (isNotFound(error)) {
+          removeGuestItem(item.slug, item.editionId);
+          return null;
+        }
+        throw error;
       }
     }),
   );

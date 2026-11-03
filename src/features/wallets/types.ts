@@ -25,6 +25,7 @@ export const walletSchema = z.object({
   network: z.enum(WALLET_NETWORKS),
   provider: z.enum(WALLET_PROVIDERS),
   connected: z.boolean(),
+  primary: z.boolean(),
   alias: z.string().optional(),
   profileName: z.string().optional(),
   secondaryAddress: z.string().optional(),
@@ -54,7 +55,13 @@ export type NewWallet = {
   provider: WalletProvider;
 } & WalletExtras;
 
-export type WalletAction = "connect" | "reject" | "disconnect";
+export type WalletAction = "connect" | "reject" | "disconnect" | "set-primary";
+
+export type WalletUpdate = {
+  label?: string;
+  address?: string;
+  network?: WalletNetwork;
+};
 
 export function isWalletNetwork(value: unknown): value is WalletNetwork {
   return typeof value === "string" && (WALLET_NETWORKS as readonly string[]).includes(value);

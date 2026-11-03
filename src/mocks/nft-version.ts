@@ -6,11 +6,6 @@ export function nftVersionOf(slug: string): number {
   return getDatabase().nfts.find((nft) => nft.slug === slug)?.priceVersion ?? 1;
 }
 
-/** Maior versão entre os itens: a cotação nunca fica abaixo dela. */
-export function maxNftVersion(slugs: string[]): number {
-  return slugs.reduce((max, slug) => Math.max(max, nftVersionOf(slug)), 1);
-}
-
 /** +10% no preço, mantendo as casas decimais do preço atual. */
 export function raisedPrice(priceEth: string): string {
   return mulEth(priceEth, 1.1);

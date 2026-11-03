@@ -40,6 +40,13 @@ export function safeRedirect(value: unknown): string | undefined {
   return value;
 }
 
+const PRIVATE_PREFIXES = ["/checkout", "/orders", "/account"] as const;
+
+/** Espelha as rotas com `beforeLoad: requireAuth`: o que exige sessão para existir. */
+export function isPrivatePath(pathname: string): boolean {
+  return PRIVATE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
 async function fetchSession(): Promise<User | null> {
   if (!readSessionToken()) return null;
   try {

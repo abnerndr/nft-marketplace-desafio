@@ -16,6 +16,7 @@ import { RootLayout } from "@/routes/__root";
 import { CartRoute } from "@/routes/cart";
 import { CheckoutRoute } from "@/routes/checkout";
 import { NftRoute } from "@/routes/nft";
+import { NotFoundPage } from "@/app/not-found";
 import { HomeRoute } from "@/routes/index";
 import { OrderRoute } from "@/routes/orders";
 
@@ -25,6 +26,7 @@ export type AuthSearch = {
 
 const rootRoute = createRootRoute({
   component: RootLayout,
+  notFoundComponent: NotFoundPage,
 });
 
 const indexRoute = createRoute({
@@ -92,6 +94,12 @@ const registerRoute = createRoute({
   validateSearch: validateAuthSearch,
 });
 
+const notFoundRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "$",
+  component: NotFoundPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   nftRoute,
@@ -102,6 +110,7 @@ const routeTree = rootRoute.addChildren([
   accountWalletsRoute,
   loginRoute,
   registerRoute,
+  notFoundRoute,
 ]);
 
 // Search sem JSON: listas viram parâmetros repetidos (?collection=a&collection=b).
@@ -109,6 +118,7 @@ export const router = createRouter({
   routeTree,
   parseSearch: parseSearchString,
   stringifySearch,
+  defaultNotFoundComponent: NotFoundPage,
 });
 
 declare module "@tanstack/react-router" {

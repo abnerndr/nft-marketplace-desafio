@@ -42,6 +42,7 @@ export function toPublicWallet(wallet: Wallet): PublicWallet {
     network: wallet.network,
     provider: wallet.provider ?? "metamask",
     connected: wallet.connected === true,
+    primary: wallet.primary === true,
     ...(alias ? { alias } : {}),
     ...(profileName ? { profileName } : {}),
     ...(secondaryAddress ? { secondaryAddress } : {}),
@@ -49,6 +50,15 @@ export function toPublicWallet(wallet: Wallet): PublicWallet {
     ...(email ? { email } : {}),
     ...(ens ? { ens } : {}),
   };
+}
+
+/** Marca a primeira como principal quando nenhuma tem a flag (bancos antigos). Principal vem primeiro. */
+function publicList(wallets: Wallet[]): PublicWallet[] {
+  const marked = wallets.some((wallet) => wallet.primary);
+  const list = wallets.map((wallet, index) =>
+    toPublicWallet({ ...wallet, primary: marked ? wallet.primary === true : index === 0 }),
+  );
+  return [...list.filter((wallet) => wallet.primary), ...list.filter((wallet) => !wallet.primary)];
 }
 
 const MAX_LABEL_LENGTH = 40;
@@ -72,7 +82,7 @@ export const walletHandlers = [
   http.get("/api/wallets", ({ request }) => {
     const user = userFromRequest(request);
     if (!user) return unauthorized();
-    return HttpResponse.json({ wallets: walletsOf(user.id).map(toPublicWallet) });
+    return HttpResponse.json({ wallets: publicList(walletsOf(user.id)) });
   }),
 
   http.post("/api/wallets", async ({ request }) => {
@@ -134,6 +144,7 @@ export const walletHandlers = [
       network: body.network,
       provider,
       connected: false,
+      primary: wallets.length === 0,
       ...(alias ? { alias } : {}),
       ...(profileName ? { profileName } : {}),
       ...(secondaryAddress ? { secondaryAddress } : {}),
@@ -154,17 +165,67 @@ export const walletHandlers = [
     const wallet = wallets.find((candidate) => candidate.id === params.id);
     if (!wallet) return errorResponse(404, "not_found", "Carteira não encontrada.");
 
-    const { action } = await readBody(request);
+    const body = await readBody(request);
+    const { action } = body;
     if (action === "reject") {
       return errorResponse(409, "wallet-connect-rejected", "A conexão foi recusada na carteira.");
     }
     if (action === "connect") {
       for (const other of wallets) other.connected = other.id === wallet.id;
-    } else if (action === "disconnect") {
-      wallet.connected = false;
-    } else {
-      return errorResponse(422, "validation", "Ação inválida.", { action: "Use connect, reject ou disconnect." });
+      saveDatabase();
+      return HttpResponse.json({ wallet: toPublicWallet(wallet) });
     }
+    if (action === "disconnect") {
+      wallet.connected = false;
+      saveDatabase();
+      return HttpResponse.json({ wallet: toPublicWallet(wallet) });
+    }
+    if (action === "set-primary") {
+      for (const other of wallets) other.primary = other.id === wallet.id;
+    } else if (action !== undefined) {
+      return errorResponse(422, "validation", "Ação inválida.", {
+        action: "Use connect, reject, disconnect ou set-primary.",
+      });
+    }
+
+    const editing =
+      body.label !== undefined || body.address !== undefined || body.network !== undefined;
+    if (!editing && action !== "set-primary") {
+      return errorResponse(422, "validation", "Ação inválida.", {
+        action: "Use connect, reject, disconnect ou set-primary.",
+      });
+    }
+
+    if (editing) {
+      const nextLabel = body.label === undefined ? wallet.label : readText(body, "label");
+      const nextNetwork = body.network === undefined ? wallet.network : body.network;
+      const nextAddress = body.address === undefined ? wallet.address : readText(body, "address");
+      const fields: Record<string, string> = {};
+      if (nextLabel === "") fields.label = "Informe um nome para a carteira.";
+      else if (nextLabel.length > MAX_LABEL_LENGTH) fields.label = `Use até ${MAX_LABEL_LENGTH} caracteres.`;
+      if (!isWalletNetwork(nextNetwork)) fields.network = "Escolha uma rede.";
+      else if (nextAddress === "") fields.address = "Informe o endereço da carteira.";
+      else if (!isValidWalletAddress(nextNetwork, nextAddress)) {
+        fields.address = "Endereço inválido para esta rede.";
+      }
+      const duplicated = wallets.some(
+        (candidate) =>
+          candidate.id !== wallet.id &&
+          isWalletNetwork(nextNetwork) &&
+          candidate.network === nextNetwork &&
+          candidate.address.toLowerCase() === nextAddress.toLowerCase(),
+      );
+      if (duplicated) {
+        fields.address = "Esta carteira já está cadastrada.";
+      }
+      if (Object.keys(fields).length > 0 || !isWalletNetwork(nextNetwork)) {
+        return errorResponse(422, "validation", "Confira os campos destacados.", fields);
+      }
+      wallet.label = nextLabel;
+      wallet.address = nextAddress;
+      wallet.network = nextNetwork;
+    }
+
     saveDatabase();
     return HttpResponse.json({ wallet: toPublicWallet(wallet) });
   }),

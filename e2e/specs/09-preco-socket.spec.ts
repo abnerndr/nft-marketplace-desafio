@@ -82,14 +82,15 @@ test.describe("alteração de preço pelo Socket.IO durante o checkout", () => {
     await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.86 ETH");
   });
 
-  test("visitante não abre socket e não recebe aviso", async ({ kurio, page }) => {
+  test("visitante recebe nft.updated público no catálogo e no carrinho", async ({ kurio, page }) => {
     await kurio.open("/");
     await kurio.addToCart(SAGE.slug);
     await page.goto("/cart");
     await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.69 ETH");
 
     await kurio.emit("nft.updated");
-    await expect(notice(page)).toHaveCount(0);
-    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.69 ETH");
+    await expect(notice(page)).toContainText(SAGE.title);
+    await expect(notice(page)).toContainText("1.86 ETH");
+    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.86 ETH");
   });
 });

@@ -14,7 +14,7 @@
  *
  * Variáveis: CHROME_PATH (Chrome a usar), LIGHTHOUSE_RUNS (padrão 3), LIGHTHOUSE_SKIP_BUILD=1.
  */
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -70,6 +70,16 @@ async function resolveChrome() {
     // sem Playwright: deixa o chrome-launcher procurar o Chrome do sistema
   }
   return undefined;
+}
+
+/** Versão do binário (`Google Chrome for Testing 156.0.8078.4`), nunca o caminho da sandbox. */
+function readChromeVersion(chromePath) {
+  const bin = chromePath ?? "google-chrome";
+  try {
+    return execFileSync(bin, ["--version"], { encoding: "utf8" }).trim();
+  } catch {
+    return "desconhecida";
+  }
 }
 
 function median(values) {
@@ -182,7 +192,7 @@ async function main() {
     const payload = {
       generatedAt: new Date().toISOString(),
       lighthouse: lighthouseVersion,
-      chrome: chromePath ?? "chrome-launcher (padrão do sistema)",
+      chrome: readChromeVersion(chromePath),
       runsPerPage: RUNS,
       targets: TARGETS,
       results,

@@ -22,20 +22,46 @@ describe("versão de preço do mock", () => {
     expect(nftVersionOf("emerald-ape-042")).toBe(2);
   });
 
-  it("a próxima cotação carrega a versão nova, então a confirmação com a versão antiga não passa", () => {
-    const items = [{ slug: "emerald-ape-042", quantity: 1 }];
+  it("a próxima cotação carrega outra versão, então a confirmação com a revisão antiga não passa", () => {
+    const items = [{ slug: "emerald-ape-042", editionId: "ed-1-50", quantity: 1 }];
     const before = quoteFor(items, "");
-    expect(before.ok && before.quote.version).toBe(1);
-
     applyPriceChange({ slug: "emerald-ape-042", priceEth: "1.31", version: 2 });
     const after = quoteFor(items, "");
-    expect(after.ok && after.quote.version).toBe(2);
+    expect(before.ok && after.ok && after.quote.version !== before.quote.version).toBe(true);
     expect(after.ok && after.quote.subtotalEth).toBe("1.31");
   });
 
+  it("muda a versão quando sobe o preço de um item que NÃO é o de maior versão", () => {
+    const items = [
+      { slug: "emerald-ape-042", editionId: "ed-1-50", quantity: 1 },
+      { slug: "sage-nomad-009", editionId: "ed-1-50", quantity: 1 },
+    ];
+    // O primeiro item já está na versão 3; o segundo sobe da 1 para a 2, abaixo do máximo.
+    applyPriceChange({ slug: "emerald-ape-042", priceEth: "1.40", version: 3 });
+    const before = quoteFor(items, "");
+    applyPriceChange({ slug: "sage-nomad-009", priceEth: "1.86", version: 2 });
+    const after = quoteFor(items, "");
+    expect(before.ok && after.ok && after.quote.version !== before.quote.version).toBe(true);
+  });
+
+  it("muda a versão com a quantidade e com o cupom, e repete com a mesma entrada", () => {
+    const one = [{ slug: "emerald-ape-042", editionId: "ed-1-50", quantity: 1 }];
+    const two = [{ slug: "emerald-ape-042", editionId: "ed-1-50", quantity: 2 }];
+    const version = (items: typeof one, coupon = "") => {
+      const result = quoteFor(items, coupon);
+      if (!result.ok) throw new Error("cotação falhou");
+      return result.quote.version;
+    };
+    expect(version(one)).toBe(version(one));
+    expect(version(two)).not.toBe(version(one));
+    expect(version(one, "GENESIS10")).not.toBe(version(one));
+  });
+
   it("cotação de outro item não herda a versão", () => {
+    const items = [{ slug: "sage-nomad-009", editionId: "ed-1-50", quantity: 1 }];
+    const before = quoteFor(items, "");
     applyPriceChange({ slug: "emerald-ape-042", priceEth: "1.31", version: 2 });
-    const other = quoteFor([{ slug: "sage-nomad-009", quantity: 1 }], "");
-    expect(other.ok && other.quote.version).toBe(1);
+    const after = quoteFor(items, "");
+    expect(before.ok && after.ok && after.quote.version === before.quote.version).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "@/shared/api/client";
-import { clearSessionToken, readSessionToken, SESSION_STORAGE_KEY, writeSessionToken } from "./session";
+import { clearSessionToken, isPrivatePath, readSessionToken, SESSION_STORAGE_KEY, writeSessionToken } from "./session";
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -57,5 +57,15 @@ describe("token da sessão", () => {
     clearSessionToken();
     expect(localStorage.getItem("kurio.session")).toBeNull();
     expect(readSessionToken()).toBeNull();
+  });
+});
+
+describe("isPrivatePath", () => {
+  it("marca checkout, pedidos e conta como privados", () => {
+    expect(isPrivatePath("/checkout")).toBe(true);
+    expect(isPrivatePath("/orders/order-1")).toBe(true);
+    expect(isPrivatePath("/account/profile")).toBe(true);
+    expect(isPrivatePath("/cart")).toBe(false);
+    expect(isPrivatePath("/")).toBe(false);
   });
 });

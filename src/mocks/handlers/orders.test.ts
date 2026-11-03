@@ -7,7 +7,7 @@ import { authHandlers } from "./auth";
 import { cartHandlers } from "./cart";
 import { nftHandlers } from "./nfts";
 import { orderHandlers } from "./orders";
-import { quoteHandlers } from "./quote";
+import { quoteFor, quoteHandlers } from "./quote";
 import { walletHandlers } from "./wallets";
 
 vi.stubGlobal("location", new URL("http://kurio.test/"));
@@ -46,11 +46,23 @@ function patchWallet(id: string, action: string) {
   return call(`/wallets/${id}`, { method: "PATCH", body: JSON.stringify({ action }) });
 }
 
+const CART_ITEMS = [
+  { slug: "emerald-ape-042", editionId: "ed-1-50", quantity: 2 },
+  { slug: "violet-nomad-314", editionId: "ed-open", quantity: 1 },
+];
+
+/** Versão que o servidor cota para `fillCart()`; `revision` é a versão que a tela já viu. */
+function cartVersion(revision?: number): number {
+  const result = quoteFor(CART_ITEMS, "", revision);
+  if (!result.ok) throw new Error("cotação do carrinho de teste falhou");
+  return result.quote.version;
+}
+
 function placeOrder(key: string | undefined, body: Record<string, unknown> = {}) {
   return call("/orders", {
     method: "POST",
     key,
-    body: JSON.stringify({ walletId: WALLET, couponCode: null, quoteVersion: 1, ...body }),
+    body: JSON.stringify({ walletId: WALLET, couponCode: null, quoteVersion: cartVersion(), ...body }),
   });
 }
 
@@ -123,6 +135,28 @@ describe("carteiras simuladas", () => {
     await patchWallet("wallet-marina-2", "disconnect");
     const after = await (await call("/wallets")).json();
     expect(after.wallets.every((wallet: { connected: boolean }) => !wallet.connected)).toBe(true);
+  });
+
+  it("edita nome, endereço e rede e troca a carteira principal", async () => {
+    const listed = await (await call("/wallets")).json();
+    expect(listed.wallets[0]).toMatchObject({ id: "wallet-marina-1", primary: true });
+    expect(listed.wallets[1]).toMatchObject({ id: "wallet-marina-2", primary: false });
+
+    const edited = await call("/wallets/wallet-marina-2", {
+      method: "PATCH",
+      body: JSON.stringify({
+        label: "Cofre Polygon",
+        address: "0x91be07c3a5d2e48f60b19c7d3a82e54f1c06ad27",
+        network: "polygon",
+      }),
+    });
+    expect(edited.status).toBe(200);
+    expect((await edited.json()).wallet).toMatchObject({ label: "Cofre Polygon", network: "polygon" });
+
+    await patchWallet("wallet-marina-2", "set-primary");
+    const next = await (await call("/wallets")).json();
+    expect(next.wallets[0]).toMatchObject({ id: "wallet-marina-2", label: "Cofre Polygon", primary: true });
+    expect(next.wallets[1]).toMatchObject({ id: "wallet-marina-1", primary: false });
   });
 });
 
@@ -214,16 +248,19 @@ describe("POST /api/orders", () => {
     expect(getDatabase().orders).toHaveLength(0);
   });
 
-  it("price-changed: versão 1 já vista dá quote_changed; a versão 2 passa", async () => {
+  it("price-changed: a versão já vista dá quote_changed; a versão nova passa", async () => {
     await ready("price-changed");
     const stale = await placeOrder("k-price-1");
     expect(stale.status).toBe(409);
     expect((await stale.json()).error.code).toBe("quote_changed");
     expect(getDatabase().orders).toHaveLength(0);
 
-    const accepted = await placeOrder("k-price-2", { quoteVersion: 2 });
+    const seen = cartVersion();
+    const next = cartVersion(seen);
+    expect(next).not.toBe(seen);
+    const accepted = await placeOrder("k-price-2", { quoteVersion: next });
     expect(accepted.status).toBe(201);
-    expect((await accepted.json()).snapshot).toMatchObject({ version: 2, networkFeeEth: "0.03", totalEth: "3.80" });
+    expect((await accepted.json()).snapshot).toMatchObject({ version: next, networkFeeEth: "0.03", totalEth: "3.80" });
   });
 
   it("order-timeout: primeira chamada espera e falha na rede, o retry devolve o pedido pendente", async () => {

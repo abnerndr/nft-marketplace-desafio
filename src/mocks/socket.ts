@@ -1,5 +1,6 @@
 import { toSocketIo } from "@mswjs/socket.io-binding";
 import { ws } from "msw";
+import { readGuestItems } from "@/features/cart/guest-cart";
 import { nftUpdatedSchema, socketUrl, type NftUpdatedEvent, type OrderUpdatedEvent } from "@/features/realtime/socket";
 import { getDatabase, saveDatabase } from "./db";
 import { applyPriceChange, nftVersionOf, raisedPrice } from "./nft-version";
@@ -53,24 +54,35 @@ function send(type: string, payload: unknown, userId?: string): void {
   }
 }
 
+function priceEventForSlug(slug: string, userId?: string): NftUpdatedEvent | null {
+  const nft = getDatabase().nfts.find((candidate) => candidate.slug === slug);
+  if (!nft) return null;
+  const version = nftVersionOf(nft.slug) + 1;
+  const event: NftUpdatedEvent = {
+    eventId: newEventId(),
+    version,
+    ...(userId ? { userId } : {}),
+    resource: { slug: nft.slug, priceEth: raisedPrice(nft.priceEth) },
+  };
+  applyPriceChange({ slug: nft.slug, priceEth: event.resource.priceEth, version });
+  return event;
+}
+
 /**
  * Sobe 10% no preço do primeiro item do carrinho do usuário e empurra `nft.updated`.
  * Devolve `null` se o carrinho está vazio.
  */
 export function priceChangeForFirstCartItem(userId: string): NftUpdatedEvent | null {
   const first = getDatabase().carts[userId]?.items[0];
-  const nft = first ? getDatabase().nfts.find((candidate) => candidate.slug === first.slug) : undefined;
-  if (!nft) return null;
+  if (!first) return null;
+  return priceEventForSlug(first.slug, userId);
+}
 
-  const version = nftVersionOf(nft.slug) + 1;
-  const event: NftUpdatedEvent = {
-    eventId: newEventId(),
-    version,
-    userId,
-    resource: { slug: nft.slug, priceEth: raisedPrice(nft.priceEth) },
-  };
-  applyPriceChange({ slug: nft.slug, priceEth: event.resource.priceEth, version });
-  return event;
+/** Evento público: primeiro item do carrinho de visitante, sem `userId`. */
+export function priceChangeForGuestCart(): NftUpdatedEvent | null {
+  const first = readGuestItems()[0];
+  if (!first) return null;
+  return priceEventForSlug(first.slug);
 }
 
 const scheduled = new Set<string>();
@@ -124,6 +136,10 @@ export function emitSocketEvent(type: string, payload?: unknown): void {
       const event = priceChangeForFirstCartItem(userId);
       if (event) send(type, event, userId);
     }
+    if ([...peers].some((peer) => peer.userId === null)) {
+      const event = priceChangeForGuestCart();
+      if (event) send(type, event);
+    }
     return;
   }
 
@@ -150,14 +166,9 @@ export const socketHandlers = [
     connection.client.addEventListener("message", (event) => {
       if (typeof event.data !== "string" || !event.data.startsWith("40")) return;
       const userId = userIdForToken(tokenFromConnectPacket(event.data));
-      if (userId === null) {
-        // Sem sessão válida o socket não serve a ninguém.
-        peers.delete(peer);
-        connection.client.close();
-        return;
-      }
       peer.userId = userId;
-      schedulePriceChange(userId);
+      // Visitante fica conectado sem `userId` e recebe `nft.updated` público.
+      if (userId) schedulePriceChange(userId);
     });
 
     connection.client.addEventListener("close", () => {

@@ -142,18 +142,24 @@ class LiveWebSocket extends EngineWebSocket {
 }
 
 export type RealtimeOptions = {
-  token: string;
-  userId: string;
+  /** Ausente no visitante: o handshake vai sem `auth.token`. */
+  token?: string;
+  /** Ausente no visitante: eventos com `userId` de outra sessão são ignorados. */
+  userId?: string;
   client: QueryClient;
 };
 
 /**
- * Abre o Socket.IO da sessão e liga os dois eventos. Devolve o cleanup: tira os listeners e
- * fecha o socket. Cada chamada tem seus próprios `eventId` e versões vistas, então trocar de
- * usuário nunca herda estado do socket anterior.
+ * Abre o Socket.IO e liga os dois eventos. Devolve o cleanup: tira os listeners e fecha o
+ * socket. Cada chamada tem seus próprios `eventId` e versões vistas, então trocar de usuário
+ * nunca herda estado do socket anterior. Visitante também conecta, sem token, para receber
+ * `nft.updated` público no catálogo e no carrinho.
  */
 export function connectRealtime({ token, userId, client }: RealtimeOptions): () => void {
-  const socket = io(socketUrl(), { auth: { token }, transportImplementations: [LiveWebSocket] });
+  const socket = io(socketUrl(), {
+    auth: token ? { token } : {},
+    transportImplementations: [LiveWebSocket],
+  });
   const seen = new Set<string>();
   const versions = new Map<string, number>();
   let connectedBefore = false;

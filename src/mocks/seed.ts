@@ -19,6 +19,8 @@ export type Wallet = {
   provider?: "metamask" | "walletconnect" | "coinbase";
   /** Ausente nas carteiras do seed: vale `false`. */
   connected?: boolean;
+  /** Ausente nas carteiras do seed: a primeira da lista vale como principal. */
+  primary?: boolean;
   /** Campos opcionais do formulário de carteiras. */
   alias?: string;
   profileName?: string;
@@ -178,7 +180,7 @@ export function createSeed(): Database {
     },
     wallets: {
       [MARINA_ID]: [
-        { id: "wallet-marina-1", label: "Carteira principal", address: "0x4a1c9be2d03f7a85c6e1b2f09d34a7c85e61f0b3", network: "ethereum" },
+        { id: "wallet-marina-1", label: "Carteira principal", address: "0x4a1c9be2d03f7a85c6e1b2f09d34a7c85e61f0b3", network: "ethereum", primary: true },
         { id: "wallet-marina-2", label: "Carteira Polygon", address: "0x91be07c3a5d2e48f60b19c7d3a82e54f1c06ad27", network: "polygon" },
       ],
       [RAFAEL_ID]: [],

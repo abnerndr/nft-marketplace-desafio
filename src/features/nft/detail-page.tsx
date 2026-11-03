@@ -535,14 +535,14 @@ function DetailSkeleton() {
       data-testid="nft-detail-skeleton"
       role="status"
       aria-label="Carregando NFT"
-      className="flex animate-pulse flex-col gap-8 pt-6 lg:flex-row"
+      className="flex flex-col gap-8 pt-6 lg:flex-row"
     >
-      <div className="h-[356px] w-full rounded-[24px] bg-surface-card lg:h-[448px] lg:w-[573px]" />
+      <div className="skeleton h-[356px] w-full rounded-[24px] lg:h-[448px] lg:w-[573px]" />
       <div className="flex flex-1 flex-col gap-4">
-        <div className="h-8 w-2/3 rounded bg-surface-card" />
-        <div className="h-5 w-1/3 rounded bg-surface-card" />
-        <div className="h-24 w-full rounded bg-surface-card" />
-        <div className="h-10 w-1/2 rounded bg-surface-card" />
+        <div className="skeleton h-8 w-2/3 rounded" />
+        <div className="skeleton h-5 w-1/3 rounded" />
+        <div className="skeleton h-24 w-full rounded" />
+        <div className="skeleton h-10 w-1/2 rounded" />
       </div>
     </div>
   );

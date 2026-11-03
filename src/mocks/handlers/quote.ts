@@ -1,7 +1,6 @@
 import { http, HttpResponse } from "msw";
 import type { Quote } from "@/shared/domain/contracts";
 import { addEth, mulEth, subEth } from "@/shared/domain/money";
-import { maxNftVersion } from "../nft-version";
 import { getScenario } from "../scenarios";
 import { findNftBySlug } from "./nfts";
 
@@ -30,18 +29,47 @@ function errorResponse(status: number, code: string, message: string, fields?: R
   return HttpResponse.json({ error: { code, message, ...(fields ? { fields } : {}) } }, { status });
 }
 
-export type QuoteItem = { slug: string; quantity: number };
+export type QuoteItem = { slug: string; editionId?: string; quantity: number };
 
 function readItems(raw: unknown): QuoteItem[] {
   if (!Array.isArray(raw)) return [];
   return raw.flatMap((entry): QuoteItem[] => {
     if (typeof entry !== "object" || entry === null) return [];
-    const { slug, quantity } = entry as Record<string, unknown>;
+    const { slug, editionId, quantity } = entry as Record<string, unknown>;
     if (typeof slug !== "string" || typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1) {
       return [];
     }
-    return [{ slug, quantity }];
+    return [{ slug, ...(typeof editionId === "string" ? { editionId } : {}), quantity }];
   });
+}
+
+/** Hash FNV-1a de 32 bits: inteiro positivo e estável para o mesmo texto. */
+function fnv1a(text: string): number {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0) || 1;
+}
+
+/**
+ * Versão da cotação: impressão digital do que forma o valor. Qualquer mudança em preço de uma
+ * linha, quantidade, linha nova ou removida, cupom ou taxa de rede gera outro número, mesmo que
+ * o item de maior `priceVersion` continue o mesmo. Não é um contador: só serve para igualdade.
+ */
+export function quoteVersionOf(
+  items: QuoteItem[],
+  couponCode: string,
+  networkFeeEth: string,
+): number {
+  const lines = items
+    .map((item) => {
+      const nft = findNftBySlug(item.slug);
+      return `${item.slug}~${item.editionId ?? ""}:${item.quantity}:${nft?.priceEth ?? "?"}:${nft?.priceVersion ?? 1}`;
+    })
+    .sort();
+  return fnv1a(JSON.stringify({ lines, coupon: couponCode.trim().toUpperCase(), fee: networkFeeEth }));
 }
 
 export type QuoteResult =
@@ -50,9 +78,8 @@ export type QuoteResult =
 
 /**
  * Cotação do mock. O preço vem do catálogo, não do cliente. `revision` é a versão que a tela
- * já mostra: no cenário `price-changed`, quem já viu uma versão recebe a versão 2 com taxa
- * maior; sem `revision` (carrinho) a cotação é a versão 1, ou a maior versão de preço dos itens
- * depois de um `nft.updated`.
+ * já mostra: no cenário `price-changed`, quem já viu uma versão recebe a taxa maior (e, com ela,
+ * outra versão). A `version` é a impressão digital de linhas, cupom e taxa (`quoteVersionOf`).
  */
 export function quoteFor(items: QuoteItem[], couponCode: string, revision?: number): QuoteResult {
   const subtotalEth = items.reduce((sum, item) => {
@@ -86,8 +113,8 @@ export function quoteFor(items: QuoteItem[], couponCode: string, revision?: numb
       discountEth,
       networkFeeEth,
       totalEth: addEth(subEth(subtotalEth, discountEth), networkFeeEth),
-      // Um `nft.updated` sobe a versão do item, e a cotação acompanha: a confirmação antiga não passa.
-      version: Math.max(changed ? 2 : 1, maxNftVersion(items.map((item) => item.slug))),
+      // Muda com qualquer preço, quantidade, cupom ou taxa: a confirmação de uma revisão antiga não passa.
+      version: quoteVersionOf(items, code, networkFeeEth),
     },
   };
 }

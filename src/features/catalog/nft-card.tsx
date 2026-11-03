@@ -64,11 +64,11 @@ export function NftCardSkeleton() {
     <div
       data-testid="nft-card-skeleton"
       aria-hidden="true"
-      className="flex h-[256px] w-full animate-pulse flex-col gap-3 sm:h-[356px] sm:w-[258px]"
+      className="flex h-[256px] w-full flex-col gap-3 sm:h-[356px] sm:w-[258px]"
     >
-      <div className="h-[200px] rounded-[20px] bg-surface-card sm:h-[300px] sm:rounded-none" />
-      <div className="mx-2 h-4 w-3/4 rounded bg-surface-card sm:mx-0" />
-      <div className="mx-2 h-4 w-1/3 rounded bg-surface-card sm:mx-0" />
+      <div className="skeleton h-[200px] rounded-[20px] sm:h-[300px] sm:rounded-none" />
+      <div className="skeleton mx-2 h-4 w-3/4 rounded sm:mx-0" />
+      <div className="skeleton mx-2 h-4 w-1/3 rounded sm:mx-0" />
     </div>
   );
 }

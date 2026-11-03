@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CartView, NftDetail, NftSummary, Order } from "@/shared/domain/contracts";
+import type { CartLine, CartView, NftDetail, NftSummary, Order } from "@/shared/domain/contracts";
 
 type Listener = (...args: unknown[]) => void;
 
@@ -113,6 +113,38 @@ describe("connectRealtime", () => {
     connectRealtime({ token: "tok", userId: "user-marina", client });
     sockets()[0].receive("nft.updated", nftEvent("e1", 2, "1.31"));
     expect(priceInList(client)).toMatchObject({ priceEth: "1.31", priceVersion: 2 });
+  });
+
+  it("visitante conecta sem token e aplica nft.updated público no catálogo e no carrinho", () => {
+    const guestCart: CartLine[] = [
+      {
+        id: "emerald-ape-042~ed-1-50",
+        slug: "emerald-ape-042",
+        editionId: "ed-1-50",
+        quantity: 1,
+        editionLabel: "1/50",
+        available: 5,
+        title: "Emerald Ape #042",
+        tokenId: "#0042",
+        imageUrl: "/nfts/a.svg",
+        priceEth: "1.19",
+      },
+    ];
+    client.setQueryData([...cartQueryKey, "guest", "raw"], guestCart);
+    connectRealtime({ client });
+    expect(mocks.io.mock.calls[0][1]).toMatchObject({ auth: {} });
+    sockets()[0].receive("nft.updated", nftEvent("e1", 2, "1.31"));
+    expect(priceInList(client)).toMatchObject({ priceEth: "1.31", priceVersion: 2 });
+    expect(client.getQueryData<CartLine[]>([...cartQueryKey, "guest", "raw"])?.[0]).toMatchObject({
+      priceEth: "1.31",
+      priceVersion: 2,
+    });
+  });
+
+  it("visitante ignora evento endereçado a outro usuário", () => {
+    connectRealtime({ client });
+    sockets()[0].receive("nft.updated", nftEvent("e1", 2, "9.99", "user-marina"));
+    expect(priceInList(client)?.priceEth).toBe("1.19");
   });
 
   it("ignora evento de outro userId", () => {

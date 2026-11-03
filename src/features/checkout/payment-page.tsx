@@ -436,9 +436,9 @@ function OrderReview({ lines, reviewed }: { lines: CartLine[]; reviewed: Quote |
 
 function CheckoutSkeleton() {
   return (
-    <div role="status" aria-label="Carregando pagamento" className="flex animate-pulse flex-col gap-3">
+    <div role="status" aria-label="Carregando pagamento" className="flex flex-col gap-3">
       {[0, 1, 2].map((index) => (
-        <div key={index} className="h-[93px] rounded-[14px] bg-surface-card" />
+        <div key={index} className="skeleton h-[93px] rounded-[14px]" />
       ))}
     </div>
   );

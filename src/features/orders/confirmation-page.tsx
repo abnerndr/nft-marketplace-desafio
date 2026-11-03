@@ -127,7 +127,7 @@ function Receipt({ order }: { order: Order }) {
         <div className="flex flex-col items-center gap-6">
           <p className="text-center text-sm leading-[22px] text-text-secondary">
             Transação confirmada na {NETWORK_LABELS[network]}. A propriedade foi transferida para sua carteira conectada e registrada na
-            rede.
+            rede. O link do explorador é simulado: não há blockchain real neste desafio.
           </p>
           {order.txRef ? (
             <a
@@ -136,7 +136,7 @@ function Receipt({ order }: { order: Order }) {
               rel="noopener noreferrer"
               className="rounded-[5px] bg-primary p-4 text-base font-bold leading-4 text-ink"
             >
-              Ver no {explorer.name}
+              Ver no {explorer.name} (simulado)
             </a>
           ) : null}
         </div>

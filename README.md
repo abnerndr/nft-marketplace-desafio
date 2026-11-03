@@ -84,7 +84,7 @@ Todas partem de `?reset=1&scenario=<id>`, por exemplo `http://localhost:5173/?re
 | Respostas fora de ordem | `out-of-order` | Em `/`, digite na busca ou troque filtros em sequência. Cada busca espera menos que a anterior (900, 400, 50 ms); a tela mantém só a resposta da busca mais recente. |
 | Sessão expirada | `session-expired` | Entre, depois abra `/checkout` ou `/account/profile`. A sessão deixa de valer: o app volta ao login e guarda o destino em `?redirect=`. |
 | Cupom inválido ou expirado | qualquer | No carrinho, aplique `VENCIDO` (expirado) ou qualquer outro código (inválido). Resposta 422 e nenhum desconto. |
-| Preço mudou antes de pagar | `price-changed` | Entre, adicione um item e abra `/cart`. Em 1,5 s chega `nft.updated` (+10%) com aviso de preço. No checkout, a cotação revista vem com taxa de 0,03 ETH e versão 2. O mesmo evento sai do painel de cenários. |
+| Preço mudou antes de pagar | `price-changed` | Entre, adicione um item e abra `/cart`. Em 1,5 s chega `nft.updated` (+10%) com aviso de preço. No checkout, a cotação revista vem com taxa de 0,03 ETH e outra `version`. O mesmo evento sai do painel de cenários. Visitante também recebe `nft.updated` público. |
 | Edição esgotou | `edition-sold-out` | Entre, adicione item, conecte carteira e confirme o pagamento. Resposta 409 `edition_sold_out`. |
 | Pagamento recusado | `payment-declined` | Mesmo fluxo; o pedido fica `declined` na tela de confirmação. |
 | Pedido pendente e timeout | `order-timeout` | Mesmo fluxo. O pedido é gravado como `pending`, a resposta se perde após 8 s e o retry reaproveita a `Idempotency-Key`. Na segunda leitura do pedido ele confirma e `order.updated` chega pelo socket. |
@@ -108,5 +108,5 @@ deploy foi feito.
 ## Limitações conhecidas
 
 Estão detalhadas em [ARCHITECTURE.md](./ARCHITECTURE.md#limitações-conhecidas). Em resumo: o binding de
-Socket.IO usa um peer de MSW 2 sobre MSW 3; o mock não derruba o WebSocket; baselines visuais só em Linux; o
-cabeçalho ainda mostra **Entrar** com sessão ativa; e fundos e alguns campos do Figma foram adaptados.
+Socket.IO usa um peer de MSW 2 sobre MSW 3; o mock não derruba o WebSocket; baselines visuais só em Linux; e
+fundos e alguns campos do Figma foram adaptados (veja a seção em ARCHITECTURE.md).

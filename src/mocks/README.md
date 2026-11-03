@@ -16,18 +16,22 @@ e só se `VITE_ENABLE_MOCKS !== "false"`. `VITE_DEFAULT_SCENARIO` define o cená
 `window.__kurio` expõe `reset()`, `setScenario(id)` e `emit(type, payload)`.
 `emit` dispara um `CustomEvent` `kurio:mock` em `window` com `detail: { type, payload }` e também
 empurra o evento pelo transporte Socket.IO mock (veja abaixo). `emit("nft.updated")` sem `payload`
-sobe 10% no preço do primeiro item do carrinho de cada usuário conectado, com `version + 1`.
+sobe 10% no preço do primeiro item do carrinho de cada usuário conectado e, se houver visitante
+conectado, do carrinho de visitante (evento público).
 
 ## Socket.IO
 
 O cliente (`src/features/realtime/socket.ts`) usa `socket.io-client` de verdade e conecta em
-`VITE_SOCKET_URL` (padrão `wss://realtime.kurio.local`) com `auth: { token }`. O mock
-(`src/mocks/socket.ts`) intercepta esse host com `ws.link` do MSW e `@mswjs/socket.io-binding`.
+`VITE_SOCKET_URL` (padrão `wss://realtime.kurio.local`). Com sessão o handshake leva `auth: { token }`;
+visitante conecta sem token. O mock (`src/mocks/socket.ts`) intercepta esse host com `ws.link` do MSW e
+`@mswjs/socket.io-binding`. `emit("nft.updated")` sem payload sobe 10% no primeiro item do carrinho de
+cada usuário conectado e, se houver socket de visitante, no primeiro item do carrinho de visitante
+(evento público, sem `userId`).
 
 **Limitação:** o transporte é interceptado pelo MSW no navegador; não há servidor Socket.IO externo.
-Sem o worker ativo (`VITE_ENABLE_MOCKS=false`) o cliente tenta um servidor real. Só há socket com
-sessão: visitante não conecta. O mock não implementa salas, namespaces, ping nem reconexão com
-recuperação de eventos perdidos; o cliente refaz as consultas ao reconectar.
+Sem o worker ativo (`VITE_ENABLE_MOCKS=false`) o cliente tenta um servidor real. O mock não implementa
+salas, namespaces, ping nem reconexão com recuperação de eventos perdidos; o cliente refaz as
+consultas ao reconectar.
 
 Eventos, ambos com `{ eventId, version, resource, userId? }`:
 
@@ -36,11 +40,12 @@ Eventos, ambos com `{ eventId, version, resource, userId? }`:
 | `nft.updated` | `{ slug, priceEth, available? }` | Atualiza catálogo, detalhe, carrinho e cotação; mostra aviso de preço. |
 | `order.updated` | `{ id, status, txRef? }` | Atualiza o pedido em cache. Pendente vale versão 1; confirmado e recusado, 2. |
 
-O cliente ignora evento com `userId` diferente do usuário atual, `eventId` repetido e `version` menor
-ou igual à já aplicada (`shouldApplyVersion`). No mock, `nft.updated` grava o preço e a versão do NFT
-no banco e a cotação passa a carregar a maior versão dos itens, então um checkout revisado na versão
-antiga recebe `quote_changed` (409). No cenário `price-changed`, 1,5 s depois de o usuário conectado
-ter um item no carrinho, o mock empurra `nft.updated` do primeiro item (+10%), uma vez por usuário.
+O cliente ignora evento com `userId` diferente do usuário atual (visitante ignora qualquer evento com
+`userId`), `eventId` repetido e `version` menor ou igual à já aplicada (`shouldApplyVersion`). No mock,
+`nft.updated` grava o preço e a versão do NFT no banco e a `version` da cotação é a impressão digital
+de linhas, cupom e taxa, então um checkout revisado numa versão antiga recebe `quote_changed` (409).
+No cenário `price-changed`, 1,5 s depois de o usuário conectado ter um item no carrinho, o mock empurra
+`nft.updated` do primeiro item (+10%), uma vez por usuário.
 
 ## Cenários
 

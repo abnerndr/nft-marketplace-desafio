@@ -51,7 +51,7 @@ Regras que valem para o cliente e para o mock:
 | `GET /cart`, `POST /cart/items`, `PATCH`/`DELETE /cart/items/:id`, `PUT /cart/coupon` | Carrinho do usuário. |
 | `POST /quote` | Cotação para visitante e logado; 422 `coupon_invalid` ou `coupon_expired`. |
 | `POST /orders`, `GET /orders/:id` | Pedido. `Idempotency-Key` obrigatório no `POST`. |
-| `GET/POST /wallets`, `PATCH /wallets/:id` | Carteiras. |
+| `GET/POST /wallets`, `PATCH /wallets/:id` | Carteiras. `PATCH` aceita `action` (`connect`, `reject`, `disconnect`, `set-primary`) ou edição de `label`, `address` e `network`. |
 | `GET/PATCH /profile`, `POST /profile/password`, `POST /profile/avatar` | Perfil. |
 
 Códigos de erro que a UI trata: `unauthorized` (401), `not_found` (404), `quote_changed`, `cart_changed`,
@@ -64,11 +64,19 @@ Códigos de erro que a UI trata: `unauthorized` (401), `not_found` (404), `quote
   envia como `Authorization: Bearer`.
 - `useSession()` é uma query (`["session"]`, `staleTime` 30 s). Sem token ela resolve `null` sem chamar a rede.
   Um 401 apaga o token e resolve `null`; qualquer outro erro sobe.
+- **401 no meio do fluxo.** Qualquer `401` de uma requisição que levou token (pedido, checkout, carrinho,
+  sessão) dispara `handleSessionExpired`: apaga só o token, marca a sessão como `null` e navega para
+  `/login?redirect=<onde estava>`. Não limpa o carrinho de visitante nem o rascunho do checkout
+  (`kurio.order-attempt` no `sessionStorage`). Login, cadastro e logout com 401 não entram nesse caminho.
+  Um botão de nova tentativa que só repete o 401 não substitui o redirecionamento.
 - Rotas privadas (`/checkout`, `/orders/$orderId`, `/account/*`) usam `beforeLoad: requireAuth`. Sem sessão, o
   app redireciona para `/login?redirect=<destino>`. `safeRedirect` só aceita caminho interno que comece com uma
   barra e rejeite `//` e `\`, o que fecha o open redirect.
+- Com sessão ativa o cabeçalho mostra o nome da conta (link para `/account/profile`) e **Sair**. Sem sessão,
+  mostra **Entrar**.
 - Login e cadastro gravam o token, sobem o carrinho de visitante e invalidam `session` e `cart`.
 - Logout limpa o token mesmo se a chamada falhar e remove o cache do carrinho.
+- Rotas desconhecidas caem na tela em português `NotFoundPage` (dentro do shell da Kurio), com link para `/`.
 - **Troca de usuário não vaza dados.** `useRealtime` observa o `userId`; quando ele muda ou some,
   `dropPrivateCache` remove carrinho, cotação, pedidos, carteiras, perfil e favoritos da sessão anterior e os
   avisos de preço. Visitante que entra mantém o que já carregou.
@@ -79,7 +87,9 @@ Dois donos, uma tela:
 
 - **Visitante:** `features/cart/guest-cart.ts` guarda linhas `{ slug, editionId, quantity }` em
   `kurio.guest-cart` e o cupom em `kurio.guest-coupon`, expostos por `useSyncExternalStore`. O preço, o título
-  e o estoque são buscados no catálogo na hora de exibir.
+  e o estoque são buscados no catálogo na hora de exibir. Só um **404** (NFT ou edição sumiu) remove a linha.
+  Falha transitória (rede, 503) sobe como erro da query: o carrinho não aparece vazio enquanto os itens
+  continuam no `localStorage`.
 - **Usuário:** o carrinho vive no servidor (`/cart`).
 - **Merge no login** (`sync.ts` e `merge.ts`): a chave `kurio.guest-cart` é apagada antes de qualquer request,
   então dois logins seguidos nunca enviam o mesmo item duas vezes. O merge soma a mesma edição, limita ao
@@ -101,19 +111,24 @@ Dois donos, uma tela:
   cenário `out-of-order` prova que uma resposta atrasada não sobrescreve a mais nova.
 - **Favoritos** são otimistas: `onMutate` cancela a leitura, grava a lista nova e guarda o snapshot; o erro
   restaura o snapshot. Visitante que favorita vai para `/login` com o destino guardado.
-- **Pedido e idempotência.** A UI gera uma `Idempotency-Key` por tentativa (`crypto.randomUUID`) e a reenvia no
-  retry depois de um resultado incerto (queda de rede, timeout). Se o corpo é o mesmo (`sameOrderAttempt` compara
-  com as chaves em ordem), o servidor devolve o pedido já criado com `Idempotency-Replayed: true`. Corpo
-  diferente (outra carteira, outra revisão) é outra tentativa e a UI gera chave nova; se mesmo assim a chave
-  chegasse repetida, o servidor responde 409 `idempotency_conflict`. O pedido guarda um `snapshot` (itens, cupom e cotação): a tela de recibo lê dele,
-  não do catálogo ao vivo.
-- **Cotação revista.** O checkout manda `quoteVersion`. Se o preço mudou depois, o servidor responde 409
-  `quote_changed` e a tela pede revisão antes de cobrar.
+- **Pedido e idempotência.** A UI gera uma `Idempotency-Key` por tentativa (`crypto.randomUUID`) e guarda chave
+  e corpo em `sessionStorage` (`kurio.order-attempt`) enquanto o resultado é incerto. Reload de `/checkout`
+  reusa a mesma chave e o mesmo corpo: o servidor devolve o pedido já criado (`Idempotency-Replayed: true`).
+  Corpo diferente (outra carteira, outra revisão) é outra tentativa e a UI gera chave nova; se a chave antiga
+  chegasse com corpo diferente, o servidor responde 409 `idempotency_conflict`. O pedido guarda um `snapshot`
+  (itens, cupom e cotação): a tela de recibo lê dele, não do catálogo ao vivo.
+- **Cotação revista.** A `version` da cotação é uma impressão digital de linhas (slug, edição, quantidade,
+  preço, `priceVersion`), cupom e taxa de rede (`quoteVersionOf`). Qualquer mudança — inclusive no item de
+  menor `priceVersion` ou só na quantidade — gera outro número. O checkout manda `quoteVersion`. Se a versão
+  da revisão estiver atrás da cotação nova, o servidor responde 409 `quote_changed` e a tela pede para aceitar
+  o total novo antes de cobrar.
 
 ## Reconciliação REST e Socket.IO
 
 O REST é a fonte da verdade; o socket só avisa. O cliente (`features/realtime/socket.ts`) usa `socket.io-client`
-de verdade, com `auth: { token }`, e abre um socket por usuário logado (visitante não conecta).
+de verdade. Com sessão, o handshake leva `auth: { token }`. Visitante também conecta, sem token, para receber
+`nft.updated` público (sem `userId`) no catálogo e no carrinho de visitante. Evento endereçado a outro
+`userId` continua ignorado.
 
 Eventos, ambos com `{ eventId, version, resource, userId? }`:
 
@@ -152,13 +167,29 @@ de rede real do navegador (Axios, cabeçalhos, cancelamento, erro de rede), e n�
   é exercitada de ponta a ponta no navegador.
 - **Baselines visuais só para Linux.** Os snapshots de `e2e/specs/13-visual.spec.ts-snapshots` foram gerados em
   Linux. Em outro sistema o spec visual falha por renderização de fonte, sem ser regressão.
-- **O header ainda mostra "Entrar" com sessão ativa.** O estado de sessão não alimenta o botão do cabeçalho; a
-  conta se alcança pelas rotas. É um desvio conhecido, ainda não corrigido.
-- **Fundos e alguns campos do Figma foram adaptados.** Os fundos decorativos usam os SVGs e PNGs exportados, mas
-  alguns campos de formulário e estados que o Figma não desenha (erro de campo, carregamento, vazio, esgotado)
-  foram desenhados com os tokens do projeto. Onde o Figma e a acessibilidade divergem (contraste, alvo de
-  toque), vale a acessibilidade.
 - **Cenários só registrados.** `validation-conflict` e `coupon-invalid` aceitam `?scenario=`, mas não têm
   comportamento próprio: os erros que eles nomeiam já saem das regras normais (cadastro, cupom).
 - **Desempenho do detalhe.** Veja `docs/lighthouse/REPORT.md`: o esqueleto do detalhe é mais baixo que o
   conteúdo e empurra o rodapé (CLS), e o bundle único de ~1,2 MB pesa no LCP móvel.
+
+## Desvios conhecidos do Figma
+
+O Figma define identidade e composição; o enunciado define comportamento. Estados que o arquivo não desenha
+seguem os tokens do projeto. Onde Figma e acessibilidade divergem (contraste, alvo de toque), vale a
+acessibilidade.
+
+- **Header com sessão.** O frame público só mostra **Entrar**. Com sessão o cabeçalho mostra o nome da conta e
+  **Sair** — o enunciado exige isso, o frame não.
+- **Contagens dos filtros.** Os números do Figma (33, 12, 119…) são ilustração. A UI usa as facetas da API.
+- **Estados sem frame.** Erro de campo, carregamento (esqueleto com brilho; parado em
+  `prefers-reduced-motion: reduce`), vazio, esgotado, 404 interno e página não encontrada foram desenhados com
+  os tokens. O resumo do carrinho usa o esqueleto no lugar de um travessão enquanto a cotação carrega.
+- **Fundos decorativos.** SVGs e PNGs exportados, com composição adaptada ao layout fluido (não ao
+  posicionamento absoluto gerado pelo MCP).
+- **Painel de cenários.** Botão flutuante de desenvolvimento; não existe no Figma.
+- **Login social.** Os botões existem no card e ficam desabilitados: o mock não tem OAuth.
+- **Itens da conta sem tela.** Atividade, lista de interesse, ofertas, arquivos e suporte levam ao diário da
+  home (`#diario`).
+- **Explorador de transação.** O recibo aponta para Etherscan/Polygonscan/Solscan com o rótulo
+  **(simulado)**. Não há blockchain real.
+- **`letterSpacing: 10`** nos estilos de 14px do Figma é porcentagem (0.1em) em rótulos, não 10px.

@@ -19,6 +19,7 @@ import { readApiError } from "@/shared/api/errors";
 import type { CartLine } from "@/shared/domain/contracts";
 import { formatEth, mulEth } from "@/shared/domain/money";
 import { useCart, useCartActions, useCouponActions } from "./api";
+import { SkeletonBar } from "@/components/skeleton";
 import { useQuote } from "./quote";
 
 const RELATED_COUNT = 5;
@@ -188,11 +189,12 @@ function TableHeader() {
   );
 }
 
-function Row({ label, value, className = "" }: { label: string; value: string; className?: string }) {
+/** `value` nulo é "ainda carregando": mostra o esqueleto, nunca um traço. */
+function Row({ label, value, className = "" }: { label: string; value: string | null; className?: string }) {
   return (
     <div className={`flex items-start justify-between ${className}`}>
       <span>{label}</span>
-      <span className="text-right">{value}</span>
+      <span className="text-right">{value ?? <SkeletonBar />}</span>
     </div>
   );
 }
@@ -205,7 +207,8 @@ function Summary({ lines, isGuest, couponCode }: { lines: CartLine[]; isGuest: b
     ? (readApiError(apply.error).fields?.couponCode ?? readApiError(apply.error).message)
     : null;
   const totals = quote.data;
-  const pending = "—";
+  // Sem total: carregando mostra o esqueleto; só a falha cai no traço (o erro aparece acima).
+  const pending = quote.isError ? "—" : null;
 
   function submitCoupon(event: FormEvent) {
     event.preventDefault();
@@ -218,6 +221,7 @@ function Summary({ lines, isGuest, couponCode }: { lines: CartLine[]; isGuest: b
   return (
     <aside
       aria-labelledby="cart-summary-title"
+      aria-busy={quote.isPending}
       className="flex flex-col gap-6 max-lg:-mx-5 max-lg:rounded-t-[40px] max-lg:bg-surface-card max-lg:px-6 max-lg:pb-9 max-lg:pt-6 lg:w-[332px] lg:shrink-0"
     >
       <div className="hidden flex-col gap-3 lg:flex">
@@ -297,7 +301,7 @@ function Summary({ lines, isGuest, couponCode }: { lines: CartLine[]; isGuest: b
         </div>
         <div className="flex items-start justify-between font-bold">
           <span className="text-base">Total</span>
-          <span className="text-lg text-text-accent">{totals ? formatEth(totals.totalEth) : pending}</span>
+          <span className="text-lg text-text-accent">{totals ? formatEth(totals.totalEth) : (pending ?? <SkeletonBar />)}</span>
         </div>
       </div>
 
@@ -355,10 +359,10 @@ function CartSkeleton() {
     <div
       role="status"
       aria-label="Carregando carrinho"
-      className="flex animate-pulse flex-col gap-3 lg:w-[782px]"
+      className="flex flex-col gap-3 lg:w-[782px]"
     >
       {[0, 1, 2].map((index) => (
-        <div key={index} className="h-[100px] rounded-[14px] bg-surface-card lg:h-[70px] lg:rounded-none" />
+        <div key={index} className="skeleton h-[100px] rounded-[14px] lg:h-[70px] lg:rounded-none" />
       ))}
     </div>
   );

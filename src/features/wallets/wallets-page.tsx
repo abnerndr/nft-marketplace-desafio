@@ -3,7 +3,7 @@ import type { FormEvent, RefObject } from "react";
 import { AccountLayout } from "@/features/account/account-layout";
 import { EnsField, PrimaryButton, SelectField, TextField } from "@/features/account/fields";
 import { readApiError } from "@/shared/api/errors";
-import { useAddWallet, useWalletAction, useWallets } from "./api";
+import { useAddWallet, useUpdateWallet, useWalletAction, useWallets } from "./api";
 import {
   NETWORK_LABELS,
   PROVIDER_LABELS,
@@ -58,36 +58,157 @@ type WalletRowProps = {
   busy: boolean;
   /** Erro da última ação desta carteira, mostrado junto dela. */
   error: string | null;
+  editing: boolean;
   onToggle: () => void;
+  onEdit: () => void;
+  onCancelEdit: () => void;
+  onSetPrimary: () => void;
 };
 
-function WalletRow({ wallet, busy, error, onToggle }: WalletRowProps) {
+function WalletRow({
+  wallet,
+  busy,
+  error,
+  editing,
+  onToggle,
+  onEdit,
+  onCancelEdit,
+  onSetPrimary,
+}: WalletRowProps) {
   const errorId = `wallet-${wallet.id}-error`;
   return (
-    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-surface-card px-4 py-3">
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <p className="truncate text-base font-bold leading-4 text-foreground">{wallet.label}</p>
-        <p className="text-sm leading-[22px] text-text-secondary">
-          {shortAddress(wallet.address)} · {NETWORK_LABELS[wallet.network]} · {PROVIDER_LABELS[wallet.provider]} ·{" "}
-          {wallet.connected ? "Conectada" : "Desconectada"}
-        </p>
+    <li className="flex flex-col gap-3 bg-surface-card px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <p className="truncate text-base font-bold leading-4 text-foreground">
+            {wallet.label}
+            {wallet.primary ? <span className="ml-2 text-xs font-medium text-text-accent">Principal</span> : null}
+          </p>
+          <p className="text-sm leading-[22px] text-text-secondary">
+            {shortAddress(wallet.address)} · {NETWORK_LABELS[wallet.network]} · {PROVIDER_LABELS[wallet.provider]} ·{" "}
+            {wallet.connected ? "Conectada" : "Desconectada"}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {wallet.primary ? null : (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onSetPrimary}
+              className="text-sm font-bold leading-4 text-text-accent underline disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Definir como principal
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={editing ? onCancelEdit : onEdit}
+            aria-label={`${editing ? "Cancelar edição de" : "Editar"} ${wallet.label}`}
+            className="text-sm font-bold leading-4 text-text-accent underline disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {editing ? "Cancelar" : "Editar"}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onToggle}
+            aria-label={`${wallet.connected ? "Desconectar" : "Conectar"} ${wallet.label}`}
+            aria-describedby={error ? errorId : undefined}
+            className="shrink-0 text-sm font-bold leading-4 text-text-accent underline disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {wallet.connected ? "Desconectar" : "Conectar"}
+          </button>
+        </div>
       </div>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={onToggle}
-        aria-label={`${wallet.connected ? "Desconectar" : "Conectar"} ${wallet.label}`}
-        aria-describedby={error ? errorId : undefined}
-        className="shrink-0 text-sm font-bold leading-4 text-text-accent underline disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {wallet.connected ? "Desconectar" : "Conectar"}
-      </button>
+      {editing ? <EditWalletForm wallet={wallet} onDone={onCancelEdit} /> : null}
       {error ? (
         <p id={errorId} role="alert" className="w-full text-xs leading-4 text-text-coral">
           {error}
         </p>
       ) : null}
     </li>
+  );
+}
+
+function EditWalletForm({ wallet, onDone }: { wallet: Wallet; onDone: () => void }) {
+  const update = useUpdateWallet();
+  const [label, setLabel] = useState(wallet.label);
+  const [address, setAddress] = useState(wallet.address);
+  const [network, setNetwork] = useState(wallet.network);
+  const [localErrors, setLocalErrors] = useState<Fields>({});
+
+  const error = update.error ? readApiError(update.error) : null;
+  const errors = { ...(error?.fields ?? {}), ...localErrors };
+  const formError = error && !error.fields ? error.message : null;
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    update.reset();
+    const found: Fields = {};
+    if (!label.trim()) found.label = "Informe um nome para a carteira.";
+    if (!isWalletNetwork(network)) found.network = "Escolha uma rede.";
+    if (!address.trim()) found.address = "Informe o endereço da carteira.";
+    setLocalErrors(found);
+    if (Object.keys(found).length > 0 || !isWalletNetwork(network)) return;
+
+    update.mutate(
+      { id: wallet.id, label, address, network },
+      { onSuccess: onDone },
+    );
+  }
+
+  return (
+    <form noValidate onSubmit={handleSubmit} aria-label={`Editar ${wallet.label}`} className="flex flex-col gap-4">
+      <div className="grid gap-x-7 gap-y-4 md:grid-cols-2">
+        <TextField
+          label="Nome de exibição"
+          name="edit-label"
+          required
+          maxLength={40}
+          autoComplete="off"
+          value={label}
+          onChange={(event) => setLabel(event.target.value)}
+          error={errors.label}
+        />
+        <SelectField
+          label="Rede"
+          name="edit-network"
+          required
+          value={network}
+          onChange={(event) => {
+            if (isWalletNetwork(event.target.value)) setNetwork(event.target.value);
+          }}
+          error={errors.network}
+        >
+          {WALLET_NETWORKS.map((option) => (
+            <option key={option} value={option}>
+              {NETWORK_LABELS[option]}
+            </option>
+          ))}
+        </SelectField>
+        <div className="md:col-span-2">
+          <TextField
+            label="Endereço da carteira"
+            name="edit-address"
+            required
+            autoComplete="off"
+            spellCheck={false}
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            error={errors.address}
+          />
+        </div>
+      </div>
+      {formError ? (
+        <p role="alert" className="text-sm text-text-coral">
+          {formError}
+        </p>
+      ) : null}
+      <PrimaryButton disabled={update.isPending} className="w-[131px] whitespace-nowrap">
+        {update.isPending ? "Salvando…" : "Salvar alterações"}
+      </PrimaryButton>
+    </form>
   );
 }
 
@@ -266,15 +387,30 @@ export function WalletsPage() {
   const wallets = useWallets();
   const act = useWalletAction();
   const formRef = useRef<HTMLDivElement>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const actionError = act.error ? readApiError(act.error) : null;
   const errorWalletId = act.error ? act.variables?.id : undefined;
   const errorFor = (wallet: Wallet) => (wallet.id === errorWalletId ? (actionError?.message ?? null) : null);
 
   const list = wallets.data ?? [];
-  const [principal, ...secondary] = list;
+  const principal = list.find((wallet) => wallet.primary) ?? list[0];
+  const secondary = list.filter((wallet) => wallet.id !== principal?.id);
 
   function toggle(wallet: Wallet) {
     act.mutate({ id: wallet.id, action: wallet.connected ? "disconnect" : "connect" });
+  }
+
+  function rowProps(wallet: Wallet) {
+    return {
+      wallet,
+      busy: act.isPending,
+      error: errorFor(wallet),
+      editing: editingId === wallet.id,
+      onToggle: () => toggle(wallet),
+      onEdit: () => setEditingId(wallet.id),
+      onCancelEdit: () => setEditingId(null),
+      onSetPrimary: () => act.mutate({ id: wallet.id, action: "set-primary" }),
+    };
   }
 
   function focusForm() {
@@ -305,7 +441,7 @@ export function WalletsPage() {
         ) : null}
         {principal ? (
           <ul aria-label="Carteira principal salva" className="flex flex-col gap-3">
-            <WalletRow wallet={principal} busy={act.isPending} error={errorFor(principal)} onToggle={() => toggle(principal)} />
+            <WalletRow {...rowProps(principal)} />
           </ul>
         ) : wallets.isSuccess ? (
           <p className="text-sm text-text-secondary">Você ainda não adicionou uma carteira.</p>
@@ -320,9 +456,9 @@ export function WalletsPage() {
         </h2>
         {secondary.length > 0 ? (
           <ul aria-label="Carteiras secundárias" className="flex flex-col gap-3">
-            {secondary.map((wallet) => (
-              <WalletRow key={wallet.id} wallet={wallet} busy={act.isPending} error={errorFor(wallet)} onToggle={() => toggle(wallet)} />
-            ))}
+              {secondary.map((wallet) => (
+                <WalletRow key={wallet.id} {...rowProps(wallet)} />
+              ))}
           </ul>
         ) : (
           <p className="text-sm leading-[15px] text-text-secondary">Você ainda não adicionou uma carteira secundária.</p>
