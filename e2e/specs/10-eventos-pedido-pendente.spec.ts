@@ -35,7 +35,7 @@ async function placePendingOrder(kurio: Kurio, page: Page): Promise<string> {
   return new URL(page.url()).pathname.split("/").pop()!;
 }
 
-test.describe("eventos duplicados ou antigos, queda de rede e pedido pendente", () => {
+test.describe("eventos duplicados ou antigos, API indisponível e pedido pendente", () => {
   test("evento duplicado não é aplicado de novo", async ({ kurio, page }) => {
     await cartWithSage(kurio, page);
 
@@ -94,7 +94,8 @@ test.describe("eventos duplicados ou antigos, queda de rede e pedido pendente", 
     await expect(page.getByText("0xABAB…ABAB")).toBeVisible();
   });
 
-  test("queda de rede com pedido pendente mostra o erro e a nova tentativa retoma o mesmo pedido", async ({ kurio, page }) => {
+  test("API indisponível (REST offline) com pedido pendente mostra o erro e a nova tentativa retoma o mesmo pedido", async ({ kurio, page }) => {
+    // O mock não tem gancho para derrubar o WebSocket: este caso é a queda do REST (cenário offline) e a retomada.
     test.setTimeout(60_000);
     const posts: string[] = [];
     page.on("request", (request) => {
