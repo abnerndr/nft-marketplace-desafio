@@ -5,7 +5,7 @@ import {
   NETWORK_OPTIONS,
   PAGE_SIZE,
 } from "@/features/catalog/search";
-import type { NftSummary } from "@/shared/domain/contracts";
+import type { Edition, NftDetail, NftSummary } from "@/shared/domain/contracts";
 import { getDatabase } from "../db";
 import { getScenario, nextOutOfOrderDelay, shouldFailTransient } from "../scenarios";
 
@@ -84,6 +84,75 @@ function emptyFacets() {
   };
 }
 
+const NETWORK_NOTES: Record<string, string> = {
+  ethereum: "Cunhado na Ethereum com procedência imutável e metadados armazenados no IPFS.",
+  polygon: "Cunhado na Polygon com procedência imutável e metadados armazenados no IPFS.",
+  solana: "Cunhado na Solana com procedência imutável e metadados armazenados no IPFS.",
+};
+
+const ACCESSORIES = ["Óculos", "Chapéu", "Fones", "Colar"];
+const PALETTES = ["Esmeralda", "Violeta", "Âmbar", "Marfim", "Cobalto"];
+const RARITIES = ["Comum", "Raro", "Épico"];
+/** O frame mostra estes atributos para o slug de exemplo. */
+const FIXED_ATTRIBUTES: Record<string, string[]> = {
+  "emerald-ape-042": ["Óculos", "Esmeralda", "Raro"],
+};
+
+function tokenNumber(slug: string): number {
+  const match = slug.match(/(\d+)$/);
+  return match ? Number(match[1]) : 0;
+}
+
+/**
+ * Edições de um NFT, derivadas só do `available` do resumo: a regra fica num lugar
+ * e o carrinho valida contra a mesma lista. `1/1` é sempre a edição esgotada.
+ */
+export function editionsOf(nft: NftSummary): Edition[] {
+  return [
+    { id: "ed-1-1", label: "1/1", available: 0 },
+    { id: "ed-1-10", label: "1/10", available: Math.floor(nft.available / 2) },
+    { id: "ed-1-50", label: "1/50", available: nft.available },
+    { id: "ed-open", label: "ABERTA", available: nft.available },
+  ];
+}
+
+export function findNftBySlug(slug: string): NftSummary | undefined {
+  return getDatabase().nfts.find((nft) => nft.slug === slug);
+}
+
+/** "Emerald Ape #042" vira "Kurio Apes": a última palavra do nome, no plural. */
+function collectionNameOf(title: string): string {
+  const words = title.replace(/\s*#\d+$/, "").split(" ");
+  return `Kurio ${words[words.length - 1]}s`;
+}
+
+function toDetail(nft: NftSummary): NftDetail {
+  const number = tokenNumber(nft.slug);
+  const attributes = FIXED_ATTRIBUTES[nft.slug] ?? [
+    ACCESSORIES[number % ACCESSORIES.length],
+    PALETTES[number % PALETTES.length],
+    RARITIES[number % RARITIES.length],
+  ];
+  return {
+    ...nft,
+    collectionName: collectionNameOf(nft.title),
+    tokenId: `#${String(number).padStart(4, "0")}`,
+    description:
+      "Um colecionável digital finalizado à mão da coleção Kurio Editions, verificado na Ethereum, com arte desbloqueável e acesso para colecionadores.",
+    about: [
+      `${nft.title} é uma obra digital finalizada à mão da coleção Kurio Editions. Cada atributo fica armazenado nos metadados do token e verificado na rede. A obra explora identidade, movimento e luz em um mundo digital sem fronteiras.`,
+      "A propriedade inclui a arte em alta resolução, lançamentos exclusivos para colecionadores e um registro permanente de procedência registrada na rede. Nova Sato recebe 5% de direitos autorais nas vendas secundárias, apoiando novos trabalhos e lançamentos da comunidade.",
+    ],
+    attributes,
+    networkNote: NETWORK_NOTES[nft.network] ?? NETWORK_NOTES.ethereum,
+    royaltyNote:
+      "Direitos autorais do criador: 5% nas vendas secundárias, pagos automaticamente pelos mercados compatíveis.",
+    contractNote: "0x7A42...19E8 • Contrato inteligente ERC-721 verificado.",
+    rating: { average: "4.8", count: 19 },
+    editions: editionsOf(nft),
+  };
+}
+
 export const nftHandlers = [
   http.get("/api/nfts", async ({ request }) => {
     if (shouldFailTransient(request.url)) {
@@ -141,5 +210,22 @@ export const nftHandlers = [
       total: sorted.length,
       facets,
     });
+  }),
+  http.get("/api/nfts/:slug", ({ request, params }) => {
+    if (shouldFailTransient(request.url)) {
+      return HttpResponse.json(
+        { error: { code: "unavailable", message: "Serviço indisponível. Tente novamente." } },
+        { status: 503 },
+      );
+    }
+
+    const nft = findNftBySlug(String(params.slug));
+    if (!nft) {
+      return HttpResponse.json(
+        { error: { code: "not_found", message: "NFT não encontrado." } },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json(toDetail(nft));
   }),
 ];

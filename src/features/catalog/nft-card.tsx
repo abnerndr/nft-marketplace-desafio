@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { formatEth } from "@/shared/domain/money";
 import type { NftSummary } from "@/shared/domain/contracts";
 
@@ -5,7 +6,7 @@ export function NftCard({ nft }: { nft: NftSummary }) {
   return (
     <article
       aria-label={nft.title}
-      className="flex w-full flex-col gap-2 sm:w-[258px] sm:gap-3"
+      className="relative flex w-full flex-col gap-2 sm:w-[258px] sm:gap-3"
     >
       <div className="flex h-[200px] items-start justify-center rounded-[20px] bg-gradient-to-br from-surface-card to-[#2F1D15] px-1 pt-3 sm:h-[300px] sm:rounded-none sm:bg-surface-card sm:bg-none sm:pt-6">
         <img
@@ -19,7 +20,13 @@ export function NftCard({ nft }: { nft: NftSummary }) {
       </div>
       <div className="flex flex-col gap-[6px] px-2 sm:gap-3 sm:px-0">
         <h3 className="text-[15px] font-normal leading-4 text-foreground sm:text-base">
-          {nft.title}
+          <Link
+            to="/nfts/$slug"
+            params={{ slug: nft.slug }}
+            className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-primary"
+          >
+            {nft.title}
+          </Link>
         </h3>
         <p className="flex items-center gap-3 text-base font-bold leading-4 text-text-accent sm:text-lg">
           <span>{formatEth(nft.priceEth)}</span>

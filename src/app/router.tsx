@@ -13,6 +13,7 @@ import { RegisterPage } from "@/features/auth/register-page";
 import { requireAuth, safeRedirect } from "@/features/auth/session";
 import { RootLayout } from "@/routes/__root";
 import { CartRoute } from "@/routes/cart";
+import { NftRoute } from "@/routes/nft";
 import { HomeRoute } from "@/routes/index";
 
 export type AuthSearch = {
@@ -37,6 +38,12 @@ const cartRoute = createRoute({
   component: CartRoute,
 });
 
+const nftRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/nfts/$slug",
+  component: NftRoute,
+});
+
 function validateAuthSearch(search: Record<string, unknown>): AuthSearch {
   return { redirect: safeRedirect(search.redirect) };
 }
@@ -55,7 +62,7 @@ const registerRoute = createRoute({
   validateSearch: validateAuthSearch,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, cartRoute, loginRoute, registerRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, nftRoute, cartRoute, loginRoute, registerRoute]);
 
 // Search sem JSON: listas viram parâmetros repetidos (?collection=a&collection=b).
 export const router = createRouter({

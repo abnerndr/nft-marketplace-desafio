@@ -14,7 +14,26 @@ const nftFields = {
 
 export const nftSummarySchema = z.object(nftFields);
 
-export const nftDetailSchema = z.object(nftFields);
+export const editionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  /** Unidades que ainda podem ser compradas. Zero desabilita a edição. */
+  available: z.number().int().nonnegative(),
+});
+
+export const nftDetailSchema = z.object({
+  ...nftFields,
+  tokenId: z.string(),
+  collectionName: z.string(),
+  description: z.string(),
+  about: z.array(z.string()),
+  attributes: z.array(z.string()),
+  networkNote: z.string(),
+  royaltyNote: z.string(),
+  contractNote: z.string(),
+  rating: z.object({ average: z.string(), count: z.number().int().nonnegative() }),
+  editions: z.array(editionSchema),
+});
 
 export const cartItemSchema = z.object({
   slug: z.string(),
@@ -58,6 +77,7 @@ export const apiErrorSchema = z.object({
 
 export type NftSummary = z.infer<typeof nftSummarySchema>;
 export type NftDetail = z.infer<typeof nftDetailSchema>;
+export type Edition = z.infer<typeof editionSchema>;
 export type Cart = z.infer<typeof cartSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
 export type Order = z.infer<typeof orderSchema>;
