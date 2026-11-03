@@ -113,10 +113,10 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
             ) : null}
             <button
               ref={toggleRef}
-              type={searchOpen ? "submit" : "button"}
-              aria-label={searchOpen ? "Buscar" : "Abrir busca"}
+              type="button"
+              aria-label="Abrir busca"
               aria-expanded={searchOpen}
-              onClick={searchOpen ? undefined : () => setSearchOpen(true)}
+              onClick={() => setSearchOpen((open) => !open)}
               className="shrink-0"
             >
               <img src={searchIcon} alt="" width={20} height={20} />
