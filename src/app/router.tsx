@@ -3,10 +3,16 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
+import { LoginPage } from "@/features/auth/login-page";
+import { RegisterPage } from "@/features/auth/register-page";
+import { requireAuth, safeRedirect } from "@/features/auth/session";
 import { RootLayout } from "@/routes/__root";
 import { CartRoute } from "@/routes/cart";
 import { HomeRoute } from "@/routes/index";
-import { LoginRoute } from "@/routes/login";
+
+export type AuthSearch = {
+  redirect?: string;
+};
 
 export type HomeSearch = {
   q?: string;
@@ -31,16 +37,29 @@ const indexRoute = createRoute({
 const cartRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/cart",
+  beforeLoad: requireAuth,
   component: CartRoute,
 });
+
+function validateAuthSearch(search: Record<string, unknown>): AuthSearch {
+  return { redirect: safeRedirect(search.redirect) };
+}
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
-  component: LoginRoute,
+  component: LoginPage,
+  validateSearch: validateAuthSearch,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, cartRoute, loginRoute]);
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/register",
+  component: RegisterPage,
+  validateSearch: validateAuthSearch,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, cartRoute, loginRoute, registerRoute]);
 
 export const router = createRouter({ routeTree });
 

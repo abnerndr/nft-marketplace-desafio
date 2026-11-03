@@ -16,6 +16,8 @@ export type Database = {
   orders: Order[];
   favorites: Record<string, string[]>;
   wallets: Record<string, Wallet[]>;
+  /** token opaco -> id do usuário. */
+  sessions: Record<string, string>;
 };
 
 type Collection =
@@ -147,5 +149,6 @@ export function createSeed(): Database {
       ],
       [RAFAEL_ID]: [],
     },
+    sessions: {},
   };
 }
