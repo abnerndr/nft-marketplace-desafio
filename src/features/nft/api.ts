@@ -1,6 +1,8 @@
 import { isAxiosError } from "axios";
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "@/shared/api/client";
+import { readSessionToken } from "@/features/auth/session";
+import { addGuestItem } from "@/features/cart/guest-cart";
 import { cartItemSchema, nftDetailSchema } from "@/shared/domain/contracts";
 import { z } from "zod";
 
@@ -24,11 +26,19 @@ export function nftDetailQuery(slug: string) {
   });
 }
 
-export type AddToCartInput = { slug: string; editionId: string; quantity: number };
+export type AddToCartInput = {
+  slug: string;
+  editionId: string;
+  quantity: number;
+  /** Estoque da edição na tela; o carrinho de visitante usa para não passar dele. */
+  available?: number;
+};
 
 const addToCartResponseSchema = z.object({ item: cartItemSchema });
 
-export async function addToCart(input: AddToCartInput) {
+/** Com sessão vai para a API; sem sessão fica em `kurio.guest-cart`, sem login. */
+export async function addToCart({ available, ...input }: AddToCartInput) {
+  if (!readSessionToken()) return addGuestItem({ ...input, available });
   const { data } = await api.post("/cart/items", input);
   return addToCartResponseSchema.parse(data).item;
 }

@@ -1,3 +1,5 @@
+import { CartPage } from "@/features/cart/cart-page";
+
 export function CartRoute() {
-  return <h1>Carrinho</h1>;
+  return <CartPage />;
 }

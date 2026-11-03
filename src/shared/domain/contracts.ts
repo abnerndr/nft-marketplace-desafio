@@ -41,6 +41,23 @@ export const cartItemSchema = z.object({
   quantity: z.number().int().positive(),
 });
 
+/** Linha do carrinho como `GET /api/cart` devolve: item mais os dados para exibir. */
+export const cartLineSchema = cartItemSchema.extend({
+  id: z.string(),
+  editionLabel: z.string(),
+  /** Estoque atual da edição; limita o stepper. */
+  available: z.number().int().nonnegative(),
+  title: z.string(),
+  tokenId: z.string(),
+  imageUrl: z.string(),
+  priceEth: z.string(),
+});
+
+export const cartViewSchema = z.object({
+  items: z.array(cartLineSchema),
+  couponCode: z.string().nullable(),
+});
+
 export const cartSchema = z.object({
   items: z.array(cartItemSchema),
   couponCode: z.string().nullable(),
@@ -79,6 +96,8 @@ export type NftSummary = z.infer<typeof nftSummarySchema>;
 export type NftDetail = z.infer<typeof nftDetailSchema>;
 export type Edition = z.infer<typeof editionSchema>;
 export type Cart = z.infer<typeof cartSchema>;
+export type CartLine = z.infer<typeof cartLineSchema>;
+export type CartView = z.infer<typeof cartViewSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
 export type Order = z.infer<typeof orderSchema>;
 export type User = z.infer<typeof userSchema>;

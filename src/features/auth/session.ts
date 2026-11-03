@@ -3,6 +3,7 @@ import { redirect } from "@tanstack/react-router";
 import { api } from "@/shared/api/client";
 import { userSchema, type User } from "@/shared/domain/contracts";
 import { queryClient } from "@/shared/api/query-client";
+import { syncGuestCart } from "@/features/cart/sync";
 import { z } from "zod";
 
 export const SESSION_STORAGE_KEY = "kurio.session";
@@ -71,6 +72,8 @@ async function authenticate(path: string, body: LoginInput | RegisterInput): Pro
   const { data } = await api.post(path, body);
   const { user, token } = authResponseSchema.parse(data);
   writeSessionToken(token);
+  // O carrinho de visitante sobe uma vez; falha aqui não pode derrubar o login.
+  await syncGuestCart().catch(() => undefined);
   return user;
 }
 
@@ -81,6 +84,7 @@ export function useLogin() {
     onSuccess: async (user) => {
       client.setQueryData(sessionQueryKey, user);
       await client.invalidateQueries({ queryKey: sessionQueryKey });
+      await client.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }
@@ -92,6 +96,7 @@ export function useRegister() {
     onSuccess: async (user) => {
       client.setQueryData(sessionQueryKey, user);
       await client.invalidateQueries({ queryKey: sessionQueryKey });
+      await client.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }
@@ -108,6 +113,7 @@ export function useLogout() {
     },
     onSettled: () => {
       client.setQueryData(sessionQueryKey, null);
+      client.removeQueries({ queryKey: ["cart"] });
     },
   });
 }

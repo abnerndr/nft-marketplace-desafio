@@ -234,7 +234,7 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
 
   function buy() {
     if (!canBuy || !edition) return;
-    add.mutate({ slug: nft.slug, editionId: edition.id, quantity });
+    add.mutate({ slug: nft.slug, editionId: edition.id, quantity, available: edition.available });
   }
 
   const failure =

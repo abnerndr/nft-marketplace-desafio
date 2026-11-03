@@ -116,6 +116,11 @@ export function editionsOf(nft: NftSummary): Edition[] {
   ];
 }
 
+/** "emerald-ape-042" vira "#0042". */
+export function tokenIdOf(slug: string): string {
+  return `#${String(tokenNumber(slug)).padStart(4, "0")}`;
+}
+
 export function findNftBySlug(slug: string): NftSummary | undefined {
   return getDatabase().nfts.find((nft) => nft.slug === slug);
 }
@@ -136,7 +141,7 @@ function toDetail(nft: NftSummary): NftDetail {
   return {
     ...nft,
     collectionName: collectionNameOf(nft.title),
-    tokenId: `#${String(number).padStart(4, "0")}`,
+    tokenId: tokenIdOf(nft.slug),
     description:
       "Um colecionável digital finalizado à mão da coleção Kurio Editions, verificado na Ethereum, com arte desbloqueável e acesso para colecionadores.",
     about: [

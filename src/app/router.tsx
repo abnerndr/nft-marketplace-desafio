@@ -10,7 +10,7 @@ import {
 } from "@/features/catalog/search";
 import { LoginPage } from "@/features/auth/login-page";
 import { RegisterPage } from "@/features/auth/register-page";
-import { requireAuth, safeRedirect } from "@/features/auth/session";
+import { safeRedirect } from "@/features/auth/session";
 import { RootLayout } from "@/routes/__root";
 import { CartRoute } from "@/routes/cart";
 import { NftRoute } from "@/routes/nft";
@@ -34,7 +34,6 @@ const indexRoute = createRoute({
 const cartRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/cart",
-  beforeLoad: requireAuth,
   component: CartRoute,
 });
 
