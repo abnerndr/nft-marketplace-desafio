@@ -3,7 +3,7 @@ import { apiErrorSchema, type ApiError } from "../domain/contracts";
 
 export function readApiError(error: unknown): ApiError {
   if (isAxiosError(error)) {
-    const parsed = apiErrorSchema.safeParse(error.response?.data);
+    const parsed = apiErrorSchema.safeParse(error.response?.data?.error);
     if (parsed.success) {
       return parsed.data;
     }

@@ -8,7 +8,7 @@ const nftFields = {
   network: z.string(),
   priceEth: z.string(),
   compareAtEth: z.string().nullable(),
-  available: z.boolean(),
+  available: z.number().int().nonnegative(),
   imageUrl: z.string(),
 };
 
