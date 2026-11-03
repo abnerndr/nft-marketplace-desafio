@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import backArrow from "@/assets/cart/back-arrow.svg";
 import backCircle from "@/assets/cart/back-circle.svg";
 import arrowDown from "@/assets/checkout/arrow-down.svg";
@@ -462,6 +462,8 @@ export function PaymentPage() {
   const quote = useCheckoutQuote(cart.lines, cart.couponCode);
   const wallets = useWallets();
   const place = usePlaceOrder();
+  /** `place.isPending` só vira verdadeiro depois do lote de notificações do React Query: um clique duplo passaria. */
+  const submitting = useRef(false);
 
   const [pickedId, setPickedId] = useState<string | null>(null);
   /** Cotação que o usuário aceitou depois de uma mudança de valores. */
@@ -475,7 +477,8 @@ export function PaymentPage() {
   const canConfirm = selected?.connected === true && reviewed !== null && changed === null && cart.lines.length > 0;
 
   function confirmPurchase() {
-    if (!selected || !reviewed || place.isPending) return;
+    if (!selected || !reviewed || place.isPending || submitting.current) return;
+    submitting.current = true;
     place.mutate(
       { walletId: selected.id, couponCode: cart.couponCode, lines: cart.lines, reviewed },
       {
@@ -483,6 +486,9 @@ export function PaymentPage() {
           if (result.kind === "placed") {
             void navigate({ to: "/orders/$orderId", params: { orderId: result.order.id } });
           }
+        },
+        onSettled: () => {
+          submitting.current = false;
         },
       },
     );
