@@ -1,7 +1,7 @@
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { initMockState } from "../db";
-import { applyScenario } from "../scenarios";
+import { applyScenario, nextOutOfOrderDelay, OUT_OF_ORDER_DELAYS_MS } from "../scenarios";
 import { nftHandlers } from "./nfts";
 
 vi.stubGlobal("location", new URL("http://kurio.test/"));
@@ -54,5 +54,25 @@ describe("GET /api/nfts", () => {
     expect((await list()).status).toBe(503);
     expect((await list()).status).toBe(503);
     expect((await list()).status).toBe(200);
+  });
+
+  it("out-of-order agenda esperas cada vez mais curtas e zera ao trocar de cenário", () => {
+    expect(nextOutOfOrderDelay()).toBe(0);
+    applyScenario("out-of-order");
+    const sequence = [nextOutOfOrderDelay(), nextOutOfOrderDelay(), nextOutOfOrderDelay(), nextOutOfOrderDelay()];
+    expect(sequence).toEqual([900, 400, 50, 50]);
+    expect(sequence[1]).toBeLessThan(sequence[0]);
+    expect(OUT_OF_ORDER_DELAYS_MS[0]).toBeGreaterThan(OUT_OF_ORDER_DELAYS_MS[1]);
+    applyScenario("out-of-order");
+    expect(nextOutOfOrderDelay()).toBe(900);
+  });
+
+  it("out-of-order: a segunda requisição responde antes da primeira", async () => {
+    applyScenario("out-of-order");
+    const order: string[] = [];
+    const first = list("?q=emerald").then(() => order.push("primeira"));
+    const second = list("?q=golden").then(() => order.push("segunda"));
+    await Promise.all([first, second]);
+    expect(order).toEqual(["segunda", "primeira"]);
   });
 });

@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import {
   COLLECTION_OPTIONS,
   NETWORK_OPTIONS,
@@ -7,7 +7,7 @@ import {
 } from "@/features/catalog/search";
 import type { NftSummary } from "@/shared/domain/contracts";
 import { getDatabase } from "../db";
-import { getScenario, shouldFailTransient } from "../scenarios";
+import { getScenario, nextOutOfOrderDelay, shouldFailTransient } from "../scenarios";
 
 const MAX_PAGE_SIZE = 48;
 /** Quantos itens, do mais recente para trás, contam como "Novos lançamentos". */
@@ -85,13 +85,17 @@ function emptyFacets() {
 }
 
 export const nftHandlers = [
-  http.get("/api/nfts", ({ request }) => {
+  http.get("/api/nfts", async ({ request }) => {
     if (shouldFailTransient(request.url)) {
       return HttpResponse.json(
         { error: { code: "unavailable", message: "Serviço indisponível. Tente novamente." } },
         { status: 503 },
       );
     }
+
+    // out-of-order: cada busca espera menos que a anterior, então a mais nova pode chegar antes.
+    const wait = nextOutOfOrderDelay();
+    if (wait > 0) await delay(wait);
 
     const url = new URL(request.url);
     const search = url.searchParams;

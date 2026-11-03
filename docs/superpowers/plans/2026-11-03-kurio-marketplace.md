@@ -437,7 +437,7 @@ EOF
 
 Resposta fora de ordem: o `queryKey` inclui todos os parâmetros. Não aplique resultado de uma key antiga (o Query já isola; não guarde lista em `useState` paralelo). Vazio: texto de estado vazio no lugar da grade. Erro: alerta com botão para `refetch`. Loading: skeleton da grade com 9 cartões de 258×356 no desktop. `slow-network` deixa o skeleton visível.
 
-Hero: kicker "Bem-vindo à Kurio", título "OWN THE FUTURE OF DIGITAL ART" quebrado como no frame, subtítulo do node `1:673`, botão "EXPLORAR" leva a `#catalogo`.
+Hero: kicker "Bem-vindo à Kurio", título do frame desktop "SEJA DONO DO FUTURO / DA ARTE DIGITAL" (o nome da camada em inglês não é o texto visível), subtítulo do node `1:673`, botão "EXPLORAR" leva a `#catalogo`.
 
 - [ ] **Step 1: Teste do helper de search**
 - [ ] **Step 2: Handler e página**

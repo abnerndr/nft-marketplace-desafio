@@ -19,6 +19,8 @@ export type ScenarioId = (typeof SCENARIO_IDS)[number];
 
 export const SLOW_NETWORK_DELAY_MS = 1200;
 export const TRANSIENT_FAILURES = 2;
+/** Esperas das buscas no cenário `out-of-order`: cada uma é mais curta que a anterior. */
+export const OUT_OF_ORDER_DELAYS_MS = [900, 400, 50] as const;
 
 export function isScenarioId(value: unknown): value is ScenarioId {
   return typeof value === "string" && (SCENARIO_IDS as readonly string[]).includes(value);
@@ -26,6 +28,7 @@ export function isScenarioId(value: unknown): value is ScenarioId {
 
 let currentScenario: ScenarioId = "default";
 const transientReads = { list: 0, detail: 0 };
+let outOfOrderCalls = 0;
 
 export function getScenario(): ScenarioId {
   return currentScenario;
@@ -40,6 +43,19 @@ export function applyScenario(id: ScenarioId): void {
 export function resetTransientCounters(): void {
   transientReads.list = 0;
   transientReads.detail = 0;
+  outOfOrderCalls = 0;
+}
+
+/**
+ * Espera da próxima busca de `/api/nfts` no cenário `out-of-order` (900, 400, 50 ms e
+ * depois 50 ms). Tem estado: cada chamada avança o contador. Fora do cenário devolve 0
+ * e não conta. O contador volta a zero em `applyScenario`.
+ */
+export function nextOutOfOrderDelay(): number {
+  if (currentScenario !== "out-of-order") return 0;
+  const index = Math.min(outOfOrderCalls, OUT_OF_ORDER_DELAYS_MS.length - 1);
+  outOfOrderCalls += 1;
+  return OUT_OF_ORDER_DELAYS_MS[index];
 }
 
 /**

@@ -21,11 +21,11 @@ e só se `VITE_ENABLE_MOCKS !== "false"`. `VITE_DEFAULT_SCENARIO` define o cená
 | Cenário | Comportamento | Estado |
 | --- | --- | --- |
 | `default` | Fluxo normal. | ativo |
-| `empty` | Catálogo, carrinho e favoritos vazios. | registrado, muda na Task 6 |
+| `empty` | `GET /api/nfts` devolve `items: []`, `total: 0` e facetas zeradas. Carrinho e favoritos ainda não mudam. | ativo (catálogo) |
 | `slow-network` | Toda chamada `/api/*` espera 1200 ms. | ativo |
-| `out-of-order` | Respostas de busca chegam fora de ordem. | registrado, muda na Task 6 |
+| `out-of-order` | Cada `GET /api/nfts` espera menos que o anterior (900, 400, 50 ms e depois 50 ms; `nextOutOfOrderDelay`), então uma busca nova pode responder antes de uma antiga. O contador zera ao trocar de cenário. | ativo |
 | `offline` | Toda chamada `/api/*` falha na rede (`HttpResponse.error()`). | ativo |
-| `server-error` | 503 nas duas primeiras leituras de `/api/nfts` e de `/api/nfts/:id`. Veja `shouldFailTransient`. | helper pronto, handlers na Task 6 |
+| `server-error` | 503 nas duas primeiras leituras de `/api/nfts` (lista), com contador próprio para `/api/nfts/:id`. Veja `shouldFailTransient`. O handler de lista está ativo; o de detalhe ainda não existe. | ativo (lista) |
 | `session-expired` | Sessão deixa de valer no meio do fluxo. | registrado, muda nas tasks de auth |
 | `validation-conflict` | Servidor devolve erro de validação por campo. | registrado |
 | `coupon-invalid` | Cupom é recusado. | registrado, muda nas tasks de carrinho |
