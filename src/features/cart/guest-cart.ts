@@ -68,6 +68,12 @@ function readCouponRaw(): string {
   }
 }
 
+/** Cupom guardado do visitante, ou `null`. Leitura pontual, fora do React. */
+export function readGuestCoupon(): string | null {
+  const raw = readCouponRaw();
+  return raw === "" ? null : raw;
+}
+
 export function setGuestCoupon(code: string | null): void {
   try {
     if (code) storage()?.setItem(GUEST_COUPON_KEY, code);

@@ -10,8 +10,14 @@ export function toQuoteItems(lines: CartLine[]): QuoteItem[] {
   return lines.map(({ slug, editionId, quantity }) => ({ slug, editionId, quantity }));
 }
 
-export async function requestQuote(items: QuoteItem[], couponCode: string | null, signal?: AbortSignal) {
-  const { data } = await api.post("/quote", { items, couponCode }, { signal });
+/** `revision` é a versão da cotação que a tela já mostra; o checkout usa para detectar mudança. */
+export async function requestQuote(
+  items: QuoteItem[],
+  couponCode: string | null,
+  signal?: AbortSignal,
+  revision?: number,
+) {
+  const { data } = await api.post("/quote", { items, couponCode, revision }, { signal });
   return quoteSchema.parse(data);
 }
 

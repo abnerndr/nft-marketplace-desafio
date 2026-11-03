@@ -3,7 +3,7 @@ import { redirect } from "@tanstack/react-router";
 import { api } from "@/shared/api/client";
 import { userSchema, type User } from "@/shared/domain/contracts";
 import { queryClient } from "@/shared/api/query-client";
-import { syncGuestCart } from "@/features/cart/sync";
+import { syncGuestCart, syncGuestCoupon } from "@/features/cart/sync";
 import { z } from "zod";
 
 export const SESSION_STORAGE_KEY = "kurio.session";
@@ -74,6 +74,7 @@ async function authenticate(path: string, body: LoginInput | RegisterInput): Pro
   writeSessionToken(token);
   // O carrinho de visitante sobe uma vez; falha aqui não pode derrubar o login.
   await syncGuestCart().catch(() => undefined);
+  await syncGuestCoupon().catch(() => undefined);
   return user;
 }
 

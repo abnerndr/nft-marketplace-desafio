@@ -7,13 +7,30 @@ export type Wallet = {
   label: string;
   address: string;
   network: "ethereum" | "polygon" | "solana";
+  /** Ausente nas carteiras do seed: vale `metamask`. */
+  provider?: "metamask" | "walletconnect" | "coinbase";
+  /** Ausente nas carteiras do seed: vale `false`. */
+  connected?: boolean;
 };
+
+/** Pedido como o mock guarda: o contrato público mais o dono e a carteira usada. */
+export type OrderRecord = Order & {
+  userId: string;
+  walletId: string;
+  /** Leituras de `GET /api/orders/:id` enquanto pendente (cenário `order-timeout`). */
+  reads: number;
+};
+
+/** Pedido criado com uma chave de idempotência: corpo cru e pedido resultante. */
+export type IdempotencyRecord = { body: string; orderId: string };
 
 export type Database = {
   nfts: NftSummary[];
   users: UserRecord[];
   carts: Record<string, Cart>;
-  orders: Order[];
+  orders: OrderRecord[];
+  /** `${userId}:${Idempotency-Key}` -> tentativa. Ausente em bancos gravados antes desta task. */
+  idempotency?: Record<string, IdempotencyRecord>;
   favorites: Record<string, string[]>;
   wallets: Record<string, Wallet[]>;
   /** token opaco -> id do usuário. */

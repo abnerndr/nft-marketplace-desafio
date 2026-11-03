@@ -10,11 +10,13 @@ import {
 } from "@/features/catalog/search";
 import { LoginPage } from "@/features/auth/login-page";
 import { RegisterPage } from "@/features/auth/register-page";
-import { safeRedirect } from "@/features/auth/session";
+import { requireAuth, safeRedirect } from "@/features/auth/session";
 import { RootLayout } from "@/routes/__root";
 import { CartRoute } from "@/routes/cart";
+import { CheckoutRoute } from "@/routes/checkout";
 import { NftRoute } from "@/routes/nft";
 import { HomeRoute } from "@/routes/index";
+import { OrderRoute } from "@/routes/orders";
 
 export type AuthSearch = {
   redirect?: string;
@@ -35,6 +37,20 @@ const cartRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/cart",
   component: CartRoute,
+});
+
+const checkoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/checkout",
+  beforeLoad: requireAuth,
+  component: CheckoutRoute,
+});
+
+const orderRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/orders/$orderId",
+  beforeLoad: requireAuth,
+  component: OrderRoute,
 });
 
 const nftRoute = createRoute({
@@ -61,7 +77,15 @@ const registerRoute = createRoute({
   validateSearch: validateAuthSearch,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, nftRoute, cartRoute, loginRoute, registerRoute]);
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  nftRoute,
+  cartRoute,
+  checkoutRoute,
+  orderRoute,
+  loginRoute,
+  registerRoute,
+]);
 
 // Search sem JSON: listas viram parâmetros repetidos (?collection=a&collection=b).
 export const router = createRouter({

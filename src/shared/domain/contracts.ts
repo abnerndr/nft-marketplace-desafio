@@ -73,11 +73,31 @@ export const quoteSchema = z.object({
 
 export const orderStatusSchema = z.enum(["pending", "confirmed", "declined"]);
 
+/** Linha gravada no pedido: a tela de recibo lê daqui, nunca do catálogo ao vivo. */
+export const orderItemSchema = z.object({
+  slug: z.string(),
+  editionId: z.string(),
+  editionLabel: z.string(),
+  quantity: z.number().int().positive(),
+  title: z.string(),
+  tokenId: z.string(),
+  imageUrl: z.string(),
+  priceEth: z.string(),
+});
+
+/** Cotação mais itens e cupom, como estavam na criação do pedido. */
+export const orderSnapshotSchema = quoteSchema.extend({
+  items: z.array(orderItemSchema),
+  couponCode: z.string().nullable(),
+});
+
 export const orderSchema = z.object({
   id: z.string(),
   status: orderStatusSchema,
-  snapshot: quoteSchema,
+  snapshot: orderSnapshotSchema,
   txRef: z.string().nullable(),
+  wallet: z.object({ label: z.string(), address: z.string(), network: z.string() }),
+  createdAt: z.string(),
 });
 
 export const userSchema = z.object({
@@ -100,5 +120,6 @@ export type CartLine = z.infer<typeof cartLineSchema>;
 export type CartView = z.infer<typeof cartViewSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
 export type Order = z.infer<typeof orderSchema>;
+export type OrderItem = z.infer<typeof orderItemSchema>;
 export type User = z.infer<typeof userSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>;

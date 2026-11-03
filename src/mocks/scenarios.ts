@@ -19,6 +19,8 @@ export type ScenarioId = (typeof SCENARIO_IDS)[number];
 
 export const SLOW_NETWORK_DELAY_MS = 1200;
 export const TRANSIENT_FAILURES = 2;
+/** Espera da primeira `POST /api/orders` no cenário `order-timeout`, antes do erro de rede. */
+export const ORDER_TIMEOUT_DELAY_MS = 8000;
 /** Esperas das buscas no cenário `out-of-order`: cada uma é mais curta que a anterior. */
 export const OUT_OF_ORDER_DELAYS_MS = [900, 400, 50] as const;
 

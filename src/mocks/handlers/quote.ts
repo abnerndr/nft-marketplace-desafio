@@ -1,10 +1,13 @@
 import { http, HttpResponse } from "msw";
 import type { Quote } from "@/shared/domain/contracts";
 import { addEth, mulEth, subEth } from "@/shared/domain/money";
+import { getScenario } from "../scenarios";
 import { findNftBySlug } from "./nfts";
 
 /** Taxa de rede fixa do seed, em ETH. */
 export const NETWORK_FEE_ETH = "0.02";
+/** Taxa depois da mudança do cenário `price-changed`. */
+export const CHANGED_NETWORK_FEE_ETH = "0.03";
 
 const COUPONS: Record<string, string> = {
   GENESIS10: "0.10",
@@ -26,7 +29,7 @@ function errorResponse(status: number, code: string, message: string, fields?: R
   return HttpResponse.json({ error: { code, message, ...(fields ? { fields } : {}) } }, { status });
 }
 
-type QuoteItem = { slug: string; quantity: number };
+export type QuoteItem = { slug: string; quantity: number };
 
 function readItems(raw: unknown): QuoteItem[] {
   if (!Array.isArray(raw)) return [];
@@ -40,9 +43,55 @@ function readItems(raw: unknown): QuoteItem[] {
   });
 }
 
+export type QuoteResult =
+  | { ok: true; quote: Quote }
+  | { ok: false; status: 422; code: "coupon_invalid" | "coupon_expired"; message: string };
+
 /**
- * `POST /api/quote`: visitante e usuário logado recebem cotação. O preço vem do catálogo,
- * não do cliente. Cupom inválido ou expirado responde 422 e não aplica desconto.
+ * Cotação do mock. O preço vem do catálogo, não do cliente. `revision` é a versão que a tela
+ * já mostra: no cenário `price-changed`, quem já viu uma versão recebe a versão 2 com taxa
+ * maior; sem `revision` (carrinho) a cotação é sempre a versão 1.
+ */
+export function quoteFor(items: QuoteItem[], couponCode: string, revision?: number): QuoteResult {
+  const subtotalEth = items.reduce((sum, item) => {
+    const nft = findNftBySlug(item.slug);
+    return nft ? addEth(sum, mulEth(nft.priceEth, item.quantity)) : sum;
+  }, "0");
+
+  let rate = "0";
+  const code = couponCode.trim();
+  if (code !== "") {
+    const coupon = applyCoupon(code);
+    if (!coupon.ok) {
+      const expired = coupon.reason === "expired";
+      return {
+        ok: false,
+        status: 422,
+        code: expired ? "coupon_expired" : "coupon_invalid",
+        message: expired ? "Este cupom expirou." : "Cupom inválido.",
+      };
+    }
+    rate = coupon.rate;
+  }
+
+  const changed = getScenario() === "price-changed" && revision !== undefined && revision >= 1;
+  const networkFeeEth = changed ? CHANGED_NETWORK_FEE_ETH : NETWORK_FEE_ETH;
+  const discountEth = mulEth(subtotalEth, Number(rate));
+  return {
+    ok: true,
+    quote: {
+      subtotalEth,
+      discountEth,
+      networkFeeEth,
+      totalEth: addEth(subEth(subtotalEth, discountEth), networkFeeEth),
+      version: changed ? 2 : 1,
+    },
+  };
+}
+
+/**
+ * `POST /api/quote`: visitante e usuário logado recebem cotação. Cupom inválido ou expirado
+ * responde 422 e não aplica desconto.
  */
 export const quoteHandlers = [
   http.post("/api/quote", async ({ request }) => {
@@ -54,31 +103,12 @@ export const quoteHandlers = [
       // corpo ausente ou inválido cai em carrinho vazio sem cupom
     }
 
-    const subtotalEth = readItems(body.items).reduce((sum, item) => {
-      const nft = findNftBySlug(item.slug);
-      return nft ? addEth(sum, mulEth(nft.priceEth, item.quantity)) : sum;
-    }, "0");
-
-    let rate = "0";
-    const couponCode = typeof body.couponCode === "string" ? body.couponCode.trim() : "";
-    if (couponCode !== "") {
-      const coupon = applyCoupon(couponCode);
-      if (!coupon.ok) {
-        const expired = coupon.reason === "expired";
-        const message = expired ? "Este cupom expirou." : "Cupom inválido.";
-        return errorResponse(422, expired ? "coupon_expired" : "coupon_invalid", message, { couponCode: message });
-      }
-      rate = coupon.rate;
+    const couponCode = typeof body.couponCode === "string" ? body.couponCode : "";
+    const revision = typeof body.revision === "number" ? body.revision : undefined;
+    const result = quoteFor(readItems(body.items), couponCode, revision);
+    if (!result.ok) {
+      return errorResponse(result.status, result.code, result.message, { couponCode: result.message });
     }
-
-    const discountEth = mulEth(subtotalEth, Number(rate));
-    const quote: Quote = {
-      subtotalEth,
-      discountEth,
-      networkFeeEth: NETWORK_FEE_ETH,
-      totalEth: addEth(subEth(subtotalEth, discountEth), NETWORK_FEE_ETH),
-      version: 1,
-    };
-    return HttpResponse.json(quote);
+    return HttpResponse.json(result.quote);
   }),
 ];

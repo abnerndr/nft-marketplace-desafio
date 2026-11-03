@@ -311,14 +311,12 @@ function Summary({ lines, isGuest, couponCode }: { lines: CartLine[]; isGuest: b
             Conectar e finalizar
           </Link>
         ) : (
-          <button
-            type="button"
-            disabled
-            title="Checkout em breve."
-            className="flex h-[60px] w-full items-center justify-center rounded-[40px] bg-gradient-to-br from-primary to-primary/80 text-base font-bold leading-4 text-ink disabled:cursor-not-allowed disabled:opacity-60 lg:h-10 lg:rounded-[3px] lg:bg-primary lg:bg-none lg:text-[15px]"
+          <Link
+            to="/checkout"
+            className="flex h-[60px] w-full items-center justify-center rounded-[40px] bg-gradient-to-br from-primary to-primary/80 text-base font-bold leading-4 text-ink lg:h-10 lg:rounded-[3px] lg:bg-primary lg:bg-none lg:text-[15px]"
           >
             Conectar e finalizar
-          </button>
+          </Link>
         )}
         <Link to="/" hash="catalogo" className="hidden text-[15px] text-text-accent lg:block">
           Continuar explorando

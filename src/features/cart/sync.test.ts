@@ -7,8 +7,9 @@ import { applyScenario } from "@/mocks/scenarios";
 import { authHandlers } from "@/mocks/handlers/auth";
 import { cartHandlers } from "@/mocks/handlers/cart";
 import { nftHandlers } from "@/mocks/handlers/nfts";
-import { addGuestItem, GUEST_CART_KEY, readGuestItems } from "./guest-cart";
-import { syncGuestCart } from "./sync";
+import { quoteHandlers } from "@/mocks/handlers/quote";
+import { addGuestItem, GUEST_CART_KEY, GUEST_COUPON_KEY, readGuestItems, setGuestCoupon } from "./guest-cart";
+import { syncGuestCart, syncGuestCoupon } from "./sync";
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -25,7 +26,7 @@ function memoryStorage(): Storage {
 }
 
 let token = "";
-const server = setupServer(...authHandlers, ...nftHandlers, ...cartHandlers);
+const server = setupServer(...authHandlers, ...nftHandlers, ...cartHandlers, ...quoteHandlers);
 
 describe("carrinho de visitante e sincronização no login", () => {
   beforeAll(() => {
@@ -79,5 +80,36 @@ describe("carrinho de visitante e sincronização no login", () => {
 
     await syncGuestCart();
     expect(getDatabase().carts["user-marina"].items).toEqual(items);
+  });
+
+  it("no login o cupom do visitante vai para o carrinho sem cupom e a chave some", async () => {
+    setGuestCoupon("DROP5");
+    signIn();
+
+    await syncGuestCoupon();
+
+    expect(getDatabase().carts["user-marina"].couponCode).toBe("DROP5");
+    expect(localStorage.getItem(GUEST_COUPON_KEY)).toBeNull();
+  });
+
+  it("se o usuário já tem cupom, mantém o dele e só apaga a chave do visitante", async () => {
+    getDatabase().carts["user-marina"].couponCode = "GENESIS10";
+    setGuestCoupon("DROP5");
+    signIn();
+
+    await syncGuestCoupon();
+
+    expect(getDatabase().carts["user-marina"].couponCode).toBe("GENESIS10");
+    expect(localStorage.getItem(GUEST_COUPON_KEY)).toBeNull();
+  });
+
+  it("cupom recusado pelo servidor também apaga a chave, sem derrubar o login", async () => {
+    setGuestCoupon("VENCIDO");
+    signIn();
+
+    await expect(syncGuestCoupon()).resolves.toBeUndefined();
+
+    expect(getDatabase().carts["user-marina"].couponCode).toBeNull();
+    expect(localStorage.getItem(GUEST_COUPON_KEY)).toBeNull();
   });
 });
