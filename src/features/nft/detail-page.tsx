@@ -24,6 +24,7 @@ import zoom from "@/assets/nft/zoom.svg";
 import { nftListQuery } from "@/features/catalog/api";
 import { NftCard } from "@/features/catalog/nft-card";
 import { toParams, type CollectionId } from "@/features/catalog/search";
+import { useFavorite } from "@/features/favorites/use-favorite";
 import { readApiError } from "@/shared/api/errors";
 import type { Edition, NftDetail } from "@/shared/domain/contracts";
 import { formatEth } from "@/shared/domain/money";
@@ -201,6 +202,8 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
   const quantity = parseQuantity(quantityText);
   const problem = soldOut ? null : quantityProblem(quantity, max);
 
+  const favorite = useFavorite(nft.slug);
+
   const add = useMutation({
     mutationFn: addToCart,
     onSuccess: () => client.invalidateQueries({ queryKey: ["cart"] }),
@@ -323,10 +326,15 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
             </Link>
             <button
               type="button"
-              className="hidden h-10 w-[130px] items-center justify-center gap-2 rounded-md border border-primary text-sm font-medium text-text-accent transition-colors hover:bg-primary/10 lg:flex"
+              aria-pressed={favorite.isFavorite}
+              onClick={favorite.toggle}
+              disabled={favorite.isPending}
+              className={`hidden h-10 w-[130px] items-center justify-center gap-2 rounded-md border border-primary text-sm font-medium text-text-accent transition-colors hover:bg-primary/10 disabled:opacity-60 lg:flex ${
+                favorite.isFavorite ? "bg-primary/20" : ""
+              }`}
             >
               <img src={heart} alt="" />
-              Favoritar
+              {favorite.isFavorite ? "Favoritado" : "Favoritar"}
             </button>
           </div>
         </div>
@@ -422,6 +430,7 @@ function RelatedNfts({ nft }: { nft: NftDetail }) {
 }
 
 function DetailContent({ nft }: { nft: NftDetail }) {
+  const favorite = useFavorite(nft.slug);
   return (
     <article
       aria-label={nft.title}
@@ -447,8 +456,13 @@ function DetailContent({ nft }: { nft: NftDetail }) {
           </Link>
           <button
             type="button"
-            aria-label="Favoritar"
-            className="flex size-[35px] items-center justify-center rounded-full border border-border bg-[#2F1D15]"
+            aria-label={favorite.isFavorite ? "Remover dos favoritos" : "Favoritar"}
+            aria-pressed={favorite.isFavorite}
+            onClick={favorite.toggle}
+            disabled={favorite.isPending}
+            className={`flex size-[35px] items-center justify-center rounded-full border border-border disabled:opacity-60 ${
+              favorite.isFavorite ? "bg-primary/30" : "bg-[#2F1D15]"
+            }`}
           >
             <img src={heartSmall} alt="" />
           </button>

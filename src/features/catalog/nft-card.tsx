@@ -1,8 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import heartSmall from "@/assets/nft/heart-small.svg";
+import { useFavorite } from "@/features/favorites/use-favorite";
 import { formatEth } from "@/shared/domain/money";
 import type { NftSummary } from "@/shared/domain/contracts";
 
 export function NftCard({ nft }: { nft: NftSummary }) {
+  const favorite = useFavorite(nft.slug);
   return (
     <article
       aria-label={nft.title}
@@ -18,6 +21,18 @@ export function NftCard({ nft }: { nft: NftSummary }) {
           className="size-[168px] rounded-2xl object-cover sm:size-[250px] sm:rounded-[15px]"
         />
       </div>
+      <button
+        type="button"
+        aria-label={favorite.isFavorite ? `Remover ${nft.title} dos favoritos` : `Favoritar ${nft.title}`}
+        aria-pressed={favorite.isFavorite}
+        onClick={favorite.toggle}
+        disabled={favorite.isPending}
+        className={`absolute right-3 top-3 z-10 flex size-[35px] items-center justify-center rounded-full border border-border transition-colors disabled:opacity-60 ${
+          favorite.isFavorite ? "bg-primary/30" : "bg-[#2F1D15]"
+        }`}
+      >
+        <img src={heartSmall} alt="" />
+      </button>
       <div className="flex flex-col gap-[6px] px-2 sm:gap-3 sm:px-0">
         <h3 className="text-[15px] font-normal leading-4 text-foreground sm:text-base">
           <Link
