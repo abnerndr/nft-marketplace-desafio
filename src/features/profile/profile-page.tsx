@@ -141,6 +141,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [localErrors, setLocalErrors] = useState<Fields>({});
   const [saved, setSaved] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
 
   const serverErrors: Fields = {
     ...fieldsOf(changePassword.error),
@@ -156,6 +157,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaved(false);
+    setPasswordSaved(false);
     updateProfile.reset();
     changePassword.reset();
 
@@ -168,17 +170,24 @@ function ProfileForm({ profile }: { profile: Profile }) {
     setLocalErrors(found);
     if (Object.keys(found).length > 0) return;
 
+    // A senha vai primeiro: se a senha atual estiver errada, nada foi gravado e a tela diz isso.
+    if (wantsPasswordChange) {
+      try {
+        await changePassword.mutateAsync({ currentPassword, newPassword, confirmPassword });
+      } catch {
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSaved(true);
+    }
+
     try {
       await updateProfile.mutateAsync({ name, username, email, ens, walletNickname });
-      if (wantsPasswordChange) {
-        await changePassword.mutateAsync({ currentPassword, newPassword, confirmPassword });
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-      }
       setSaved(true);
     } catch {
-      // O erro de cada chamada já aparece nos campos ou na mensagem geral.
+      // O erro do perfil aparece nos campos ou na mensagem geral; a senha já trocada fica avisada à parte.
     }
   }
 
@@ -268,9 +277,19 @@ function ProfileForm({ profile }: { profile: Profile }) {
             {failure}
           </p>
         ) : null}
+        {changePassword.error ? (
+          <p role="alert" className="text-sm text-text-coral">
+            Nenhuma alteração foi salva: corrija os campos de senha e salve de novo.
+          </p>
+        ) : null}
+        {passwordSaved && !saved ? (
+          <p role="status" className="text-sm text-text-secondary">
+            Senha alterada. Os dados do perfil não foram salvos: corrija os campos indicados e salve de novo.
+          </p>
+        ) : null}
         {saved ? (
           <p role="status" className="text-sm text-text-secondary">
-            Alterações salvas.
+            {passwordSaved ? "Perfil e senha salvos." : "Alterações salvas."}
           </p>
         ) : null}
       </div>

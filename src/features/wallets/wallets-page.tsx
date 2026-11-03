@@ -53,9 +53,18 @@ function validateWallet(form: FormState): Fields {
   return fields;
 }
 
-function WalletRow({ wallet, busy, onToggle }: { wallet: Wallet; busy: boolean; onToggle: () => void }) {
+type WalletRowProps = {
+  wallet: Wallet;
+  busy: boolean;
+  /** Erro da última ação desta carteira, mostrado junto dela. */
+  error: string | null;
+  onToggle: () => void;
+};
+
+function WalletRow({ wallet, busy, error, onToggle }: WalletRowProps) {
+  const errorId = `wallet-${wallet.id}-error`;
   return (
-    <li className="flex items-center justify-between gap-4 bg-surface-card px-4 py-3">
+    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-surface-card px-4 py-3">
       <div className="flex min-w-0 flex-col gap-1.5">
         <p className="truncate text-base font-bold leading-4 text-foreground">{wallet.label}</p>
         <p className="text-sm leading-[22px] text-text-secondary">
@@ -68,10 +77,16 @@ function WalletRow({ wallet, busy, onToggle }: { wallet: Wallet; busy: boolean; 
         disabled={busy}
         onClick={onToggle}
         aria-label={`${wallet.connected ? "Desconectar" : "Conectar"} ${wallet.label}`}
+        aria-describedby={error ? errorId : undefined}
         className="shrink-0 text-sm font-bold leading-4 text-text-accent underline disabled:cursor-not-allowed disabled:opacity-60"
       >
         {wallet.connected ? "Desconectar" : "Conectar"}
       </button>
+      {error ? (
+        <p id={errorId} role="alert" className="w-full text-xs leading-4 text-text-coral">
+          {error}
+        </p>
+      ) : null}
     </li>
   );
 }
@@ -252,6 +267,8 @@ export function WalletsPage() {
   const act = useWalletAction();
   const formRef = useRef<HTMLDivElement>(null);
   const actionError = act.error ? readApiError(act.error) : null;
+  const errorWalletId = act.error ? act.variables?.id : undefined;
+  const errorFor = (wallet: Wallet) => (wallet.id === errorWalletId ? (actionError?.message ?? null) : null);
 
   const list = wallets.data ?? [];
   const [principal, ...secondary] = list;
@@ -288,7 +305,7 @@ export function WalletsPage() {
         ) : null}
         {principal ? (
           <ul aria-label="Carteira principal salva" className="flex flex-col gap-3">
-            <WalletRow wallet={principal} busy={act.isPending} onToggle={() => toggle(principal)} />
+            <WalletRow wallet={principal} busy={act.isPending} error={errorFor(principal)} onToggle={() => toggle(principal)} />
           </ul>
         ) : wallets.isSuccess ? (
           <p className="text-sm text-text-secondary">Você ainda não adicionou uma carteira.</p>
@@ -304,17 +321,12 @@ export function WalletsPage() {
         {secondary.length > 0 ? (
           <ul aria-label="Carteiras secundárias" className="flex flex-col gap-3">
             {secondary.map((wallet) => (
-              <WalletRow key={wallet.id} wallet={wallet} busy={act.isPending} onToggle={() => toggle(wallet)} />
+              <WalletRow key={wallet.id} wallet={wallet} busy={act.isPending} error={errorFor(wallet)} onToggle={() => toggle(wallet)} />
             ))}
           </ul>
         ) : (
           <p className="text-sm leading-[15px] text-text-secondary">Você ainda não adicionou uma carteira secundária.</p>
         )}
-        {actionError ? (
-          <p role="alert" data-code={actionError.code} className="text-sm text-text-coral">
-            {actionError.message}
-          </p>
-        ) : null}
       </section>
     </AccountLayout>
   );
