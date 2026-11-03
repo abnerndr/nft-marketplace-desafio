@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.superpowers
+playwright-report
+test-results
+reports
+*.tsbuildinfo
