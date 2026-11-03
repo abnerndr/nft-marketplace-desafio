@@ -25,6 +25,12 @@ export const walletSchema = z.object({
   network: z.enum(WALLET_NETWORKS),
   provider: z.enum(WALLET_PROVIDERS),
   connected: z.boolean(),
+  alias: z.string().optional(),
+  profileName: z.string().optional(),
+  secondaryAddress: z.string().optional(),
+  referralCode: z.string().optional(),
+  email: z.string().optional(),
+  ens: z.string().optional(),
 });
 
 export const walletListSchema = z.object({ wallets: z.array(walletSchema) });
@@ -32,12 +38,21 @@ export const walletResponseSchema = z.object({ wallet: walletSchema });
 
 export type Wallet = z.infer<typeof walletSchema>;
 
+export type WalletExtras = {
+  alias?: string;
+  profileName?: string;
+  secondaryAddress?: string;
+  referralCode?: string;
+  email?: string;
+  ens?: string;
+};
+
 export type NewWallet = {
   label: string;
   address: string;
   network: WalletNetwork;
   provider: WalletProvider;
-};
+} & WalletExtras;
 
 export type WalletAction = "connect" | "reject" | "disconnect";
 

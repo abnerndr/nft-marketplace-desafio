@@ -1,6 +1,14 @@
 import type { Cart, NftSummary, Order, User } from "@/shared/domain/contracts";
 
-export type UserRecord = User & { passwordHash: string };
+/** Campos de perfil são opcionais: o seed e bancos antigos não os têm. */
+export type UserRecord = User & {
+  passwordHash: string;
+  username?: string;
+  ens?: string;
+  walletNickname?: string;
+  /** Data URL da imagem enviada em `POST /api/profile/avatar`. */
+  avatarUrl?: string;
+};
 
 export type Wallet = {
   id: string;
@@ -11,6 +19,13 @@ export type Wallet = {
   provider?: "metamask" | "walletconnect" | "coinbase";
   /** Ausente nas carteiras do seed: vale `false`. */
   connected?: boolean;
+  /** Campos opcionais do formulário de carteiras. */
+  alias?: string;
+  profileName?: string;
+  secondaryAddress?: string;
+  referralCode?: string;
+  email?: string;
+  ens?: string;
 };
 
 /** Pedido como o mock guarda: o contrato público mais o dono e a carteira usada. */

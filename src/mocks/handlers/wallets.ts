@@ -34,6 +34,7 @@ function walletsOf(userId: string): Wallet[] {
 
 /** Carteiras do seed não têm `provider` nem `connected`: valem MetaMask e desconectada. */
 export function toPublicWallet(wallet: Wallet): PublicWallet {
+  const { alias, profileName, secondaryAddress, referralCode, email, ens } = wallet;
   return {
     id: wallet.id,
     label: wallet.label,
@@ -41,10 +42,26 @@ export function toPublicWallet(wallet: Wallet): PublicWallet {
     network: wallet.network,
     provider: wallet.provider ?? "metamask",
     connected: wallet.connected === true,
+    ...(alias ? { alias } : {}),
+    ...(profileName ? { profileName } : {}),
+    ...(secondaryAddress ? { secondaryAddress } : {}),
+    ...(referralCode ? { referralCode } : {}),
+    ...(email ? { email } : {}),
+    ...(ens ? { ens } : {}),
   };
 }
 
 const MAX_LABEL_LENGTH = 40;
+const MAX_EXTRA_LENGTH = 60;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ENS_PATTERN = /^[a-z0-9-]{3,63}$/i;
+const ENS_FULL_PATTERN = /^[a-z0-9-]{3,63}\.eth$/i;
+const REFERRAL_PATTERN = /^[A-Za-z0-9-]{3,20}$/;
+
+function readText(body: Record<string, unknown>, key: string): string {
+  const value = body[key];
+  return typeof value === "string" ? value.trim() : "";
+}
 
 /**
  * Carteiras simuladas, sem extensão do navegador. `PATCH` recebe `action`:
@@ -74,6 +91,28 @@ export const walletHandlers = [
     else if (address === "") fields.address = "Informe o endereço da carteira.";
     else if (!isValidWalletAddress(body.network, address)) fields.address = "Endereço inválido para esta rede.";
     if (!isWalletProvider(provider)) fields.provider = "Escolha uma carteira.";
+
+    // Campos opcionais do formulário de carteiras: vazio vale "não informado".
+    const alias = readText(body, "alias");
+    const profileName = readText(body, "profileName");
+    const secondaryAddress = readText(body, "secondaryAddress");
+    const referralCode = readText(body, "referralCode");
+    const email = readText(body, "email");
+    const ens = readText(body, "ens");
+    if (alias.length > MAX_EXTRA_LENGTH) fields.alias = `Use até ${MAX_EXTRA_LENGTH} caracteres.`;
+    if (profileName.length > MAX_EXTRA_LENGTH) fields.profileName = `Use até ${MAX_EXTRA_LENGTH} caracteres.`;
+    if (referralCode && !REFERRAL_PATTERN.test(referralCode)) {
+      fields.referralCode = "Use de 3 a 20 letras, números ou hífen.";
+    }
+    if (email && !EMAIL_PATTERN.test(email)) fields.email = "Digite um e-mail válido.";
+    if (ens && !ENS_PATTERN.test(ens)) fields.ens = "Use de 3 a 63 letras, números ou hífen.";
+    if (
+      secondaryAddress &&
+      !ENS_FULL_PATTERN.test(secondaryAddress) &&
+      !(isWalletNetwork(body.network) && isValidWalletAddress(body.network, secondaryAddress))
+    ) {
+      fields.secondaryAddress = "Informe um endereço válido ou um nome .eth.";
+    }
     if (Object.keys(fields).length > 0 || !isWalletNetwork(body.network) || !isWalletProvider(provider)) {
       return errorResponse(422, "validation", "Confira os campos destacados.", fields);
     }
@@ -95,6 +134,12 @@ export const walletHandlers = [
       network: body.network,
       provider,
       connected: false,
+      ...(alias ? { alias } : {}),
+      ...(profileName ? { profileName } : {}),
+      ...(secondaryAddress ? { secondaryAddress } : {}),
+      ...(referralCode ? { referralCode } : {}),
+      ...(email ? { email } : {}),
+      ...(ens ? { ens } : {}),
     };
     wallets.push(wallet);
     saveDatabase();

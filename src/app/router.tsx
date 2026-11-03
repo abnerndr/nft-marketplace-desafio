@@ -11,6 +11,7 @@ import {
 import { LoginPage } from "@/features/auth/login-page";
 import { RegisterPage } from "@/features/auth/register-page";
 import { requireAuth, safeRedirect } from "@/features/auth/session";
+import { AccountProfileRoute, AccountWalletsRoute } from "@/routes/account";
 import { RootLayout } from "@/routes/__root";
 import { CartRoute } from "@/routes/cart";
 import { CheckoutRoute } from "@/routes/checkout";
@@ -53,6 +54,20 @@ const orderRoute = createRoute({
   component: OrderRoute,
 });
 
+const accountProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/account/profile",
+  beforeLoad: requireAuth,
+  component: AccountProfileRoute,
+});
+
+const accountWalletsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/account/wallets",
+  beforeLoad: requireAuth,
+  component: AccountWalletsRoute,
+});
+
 const nftRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/nfts/$slug",
@@ -83,6 +98,8 @@ const routeTree = rootRoute.addChildren([
   cartRoute,
   checkoutRoute,
   orderRoute,
+  accountProfileRoute,
+  accountWalletsRoute,
   loginRoute,
   registerRoute,
 ]);

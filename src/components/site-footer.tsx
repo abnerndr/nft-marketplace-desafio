@@ -24,6 +24,8 @@ const features = [
   },
 ];
 
+const PROFILE_LINK = "Meu perfil";
+
 const linkColumns = [
   {
     title: "Meu perfil",
@@ -151,9 +153,15 @@ export function SiteFooter() {
               <ul className="text-sm leading-[30px]">
                 {column.links.map((label) => (
                   <li key={label}>
-                    <DiaryLink className="hover:text-text-accent">
-                      {label}
-                    </DiaryLink>
+                    {label === PROFILE_LINK ? (
+                      <Link to="/account/profile" className="hover:text-text-accent">
+                        {label}
+                      </Link>
+                    ) : (
+                      <DiaryLink className="hover:text-text-accent">
+                        {label}
+                      </DiaryLink>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -1,11 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { cartQueryKey } from "@/features/cart/api";
 import { quoteQueryKey } from "@/features/cart/quote";
+import { profileQueryKey } from "@/features/profile/api";
 import { walletsQueryKey } from "@/features/wallets/api";
 import { clearPriceNotices } from "./notices";
 
 /** Dados que pertencem à sessão: não podem sobrar para o próximo usuário. */
-const PRIVATE_KEYS = [cartQueryKey, quoteQueryKey, ["order"], walletsQueryKey, ["favorites"]] as const;
+const PRIVATE_KEYS = [cartQueryKey, quoteQueryKey, ["order"], walletsQueryKey, profileQueryKey, ["favorites"]] as const;
 
 /**
  * Troca de usuário (ou saída) descarta a sessão anterior. Visitante que entra (`before` indefinido)
