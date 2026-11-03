@@ -67,6 +67,7 @@ function toLine(item: { slug: string; editionId: string; quantity: number }): Ca
     tokenId: tokenIdOf(nft.slug),
     imageUrl: nft.imageUrl,
     priceEth: nft.priceEth,
+    priceVersion: nft.priceVersion,
   };
 }
 

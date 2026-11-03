@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useCartCount } from "@/features/cart/api";
 import { PriceNotices } from "@/features/realtime/price-notice";
+import { ScenarioPanel } from "@/features/realtime/scenario-panel";
 import { useRealtime } from "@/features/realtime/use-realtime";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -14,6 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <PriceNotices />
       <main className="mx-auto w-full max-w-[1240px] flex-1 px-5">{children}</main>
       <SiteFooter />
+      <ScenarioPanel />
     </div>
   );
 }

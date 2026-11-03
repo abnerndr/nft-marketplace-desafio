@@ -32,6 +32,10 @@ export function clearPriceNotices(): void {
   if (notices.length > 0) emit([]);
 }
 
+export function getPriceNotices(): readonly PriceNotice[] {
+  return notices;
+}
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => {

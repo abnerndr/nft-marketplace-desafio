@@ -3,7 +3,7 @@ import { getDatabase, saveDatabase } from "./db";
 
 /** Versão atual do preço de um NFT. Sem mudança registrada vale 1. */
 export function nftVersionOf(slug: string): number {
-  return getDatabase().nftVersions?.[slug] ?? 1;
+  return getDatabase().nfts.find((nft) => nft.slug === slug)?.priceVersion ?? 1;
 }
 
 /** Maior versão entre os itens: a cotação nunca fica abaixo dela. */
@@ -27,8 +27,8 @@ export function applyPriceChange(change: PriceChange): boolean {
   const nft = db.nfts.find((candidate) => candidate.slug === change.slug);
   if (!nft || change.version <= nftVersionOf(change.slug)) return false;
   nft.priceEth = change.priceEth;
-  db.nftVersions ??= {};
-  db.nftVersions[change.slug] = change.version;
+  // A versão viaja no próprio NFT que a API devolve, então o cliente a lê do cache depois de recarregar.
+  nft.priceVersion = change.version;
   saveDatabase();
   return true;
 }

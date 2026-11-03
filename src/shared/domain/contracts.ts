@@ -7,6 +7,8 @@ const nftFields = {
   collection: z.string(),
   network: z.string(),
   priceEth: z.string(),
+  /** Versão do preço. Ausente vale 1; sobe a cada `nft.updated`. */
+  priceVersion: z.number().int().positive().optional(),
   compareAtEth: z.string().nullable(),
   available: z.number().int().nonnegative(),
   imageUrl: z.string(),
@@ -51,6 +53,7 @@ export const cartLineSchema = cartItemSchema.extend({
   tokenId: z.string(),
   imageUrl: z.string(),
   priceEth: z.string(),
+  priceVersion: z.number().int().positive().optional(),
 });
 
 export const cartViewSchema = z.object({
