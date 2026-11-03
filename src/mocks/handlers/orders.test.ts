@@ -193,8 +193,8 @@ describe("POST /api/orders", () => {
     await ready();
     await placeOrder("k-diff");
     const other = await placeOrder("k-diff", { walletId: "wallet-marina-2" });
-    expect(other.status).toBe(422);
-    expect((await other.json()).error.code).toBe("idempotency_key_reused");
+    expect(other.status).toBe(409);
+    expect((await other.json()).error.code).toBe("idempotency_conflict");
   });
 
   it("payment-declined grava declined e não esvazia o carrinho", async () => {

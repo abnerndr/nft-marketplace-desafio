@@ -95,7 +95,7 @@ function parseBody(raw: string): OrderBody {
 
 /**
  * `POST /api/orders` exige `Idempotency-Key`. A mesma chave com o mesmo corpo devolve o pedido já
- * criado; com corpo diferente responde 422. O carrinho vem do servidor, o preço vem do catálogo.
+ * criado; com corpo diferente responde 409 `idempotency_conflict`. O carrinho vem do servidor, o preço vem do catálogo.
  * Cenários: `payment-declined` grava `declined`; `order-timeout` grava `pending`, espera 8 s e
  * falha na rede; `edition-sold-out` esgota a edição; os demais gravam `confirmed`.
  */
@@ -117,7 +117,7 @@ export const orderHandlers = [
     const previous = db.idempotency[storeKey];
     if (previous) {
       if (!sameOrderAttempt(previous.body, rawBody)) {
-        return errorResponse(422, "idempotency_key_reused", "Esta chave já foi usada em outro pedido.");
+        return errorResponse(409, "idempotency_conflict", "Esta chave já foi usada em outro pedido.");
       }
       const existing = db.orders.find((order) => order.id === previous.orderId);
       if (existing) return HttpResponse.json(toOrder(existing), { headers: { "Idempotency-Replayed": "true" } });
