@@ -8,9 +8,12 @@ import { cartViewSchema, type CartLine } from "@/shared/domain/contracts";
 import {
   parseGuestItems,
   removeGuestItem,
+  setGuestCoupon,
   setGuestQuantity,
   useGuestCartRaw,
+  useGuestCoupon,
 } from "./guest-cart";
+import { requestQuote, toQuoteItems } from "./quote";
 
 export const cartQueryKey = ["cart"] as const;
 
@@ -54,6 +57,8 @@ async function loadGuestLines(raw: string): Promise<CartLine[]> {
 
 export type CartState = {
   lines: CartLine[];
+  /** Cupom salvo: no servidor com sessão, no `localStorage` sem sessão. */
+  couponCode: string | null;
   isGuest: boolean;
   isPending: boolean;
   isError: boolean;
@@ -66,6 +71,7 @@ export function useCart(): CartState {
   const session = useSession();
   const user = session.data ?? null;
   const raw = useGuestCartRaw();
+  const guestCoupon = useGuestCoupon();
 
   const server = useQuery({ ...serverCartQuery, enabled: user !== null });
   const guest = useQuery({
@@ -76,14 +82,15 @@ export function useCart(): CartState {
   });
 
   if (session.isPending) {
-    return { lines: [], isGuest: true, isPending: true, isError: false, error: null, refetch: () => void session.refetch() };
+    return { lines: [], couponCode: null, isGuest: true, isPending: true, isError: false, error: null, refetch: () => void session.refetch() };
   }
   if (session.isError) {
-    return { lines: [], isGuest: true, isPending: false, isError: true, error: session.error, refetch: () => void session.refetch() };
+    return { lines: [], couponCode: null, isGuest: true, isPending: false, isError: true, error: session.error, refetch: () => void session.refetch() };
   }
   const active = user ? server : guest;
   return {
     lines: (user ? server.data?.items : guest.data) ?? [],
+    couponCode: user ? (server.data?.couponCode ?? null) : guestCoupon,
     isGuest: user === null,
     isPending: active.isPending,
     isError: active.isError,
@@ -136,4 +143,33 @@ export function useCartActions(isGuest: boolean) {
   });
 
   return { setQuantity, remove };
+}
+
+/**
+ * Aplica e remove o cupom salvo. Aplicar confere o código na cotação antes de salvar,
+ * então código inválido ou expirado falha sem trocar o cupom já guardado.
+ */
+export function useCouponActions(isGuest: boolean, lines: CartLine[]) {
+  const client = useQueryClient();
+
+  async function save(code: string | null) {
+    if (isGuest) setGuestCoupon(code);
+    else await api.put("/cart/coupon", { couponCode: code });
+  }
+
+  const apply = useMutation({
+    mutationFn: async (code: string) => {
+      const normalized = code.trim().toUpperCase();
+      await requestQuote(toQuoteItems(lines), normalized);
+      await save(normalized);
+    },
+    onSettled: () => client.invalidateQueries({ queryKey: cartQueryKey }),
+  });
+
+  const clear = useMutation({
+    mutationFn: () => save(null),
+    onSettled: () => client.invalidateQueries({ queryKey: cartQueryKey }),
+  });
+
+  return { apply, clear };
 }

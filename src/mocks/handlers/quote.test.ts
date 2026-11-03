@@ -1,7 +1,11 @@
 import { setupServer } from "msw/node";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { quoteSchema } from "@/shared/domain/contracts";
-import { initMockState } from "../db";
+import { GUEST_COUPON_KEY, setGuestCoupon } from "@/features/cart/guest-cart";
+import { getDatabase, initMockState } from "../db";
+import { authHandlers } from "./auth";
+import { cartHandlers } from "./cart";
+import { nftHandlers } from "./nfts";
 import { applyCoupon, quoteHandlers } from "./quote";
 
 vi.stubGlobal("location", new URL("http://kurio.test/"));
@@ -19,7 +23,7 @@ describe("applyCoupon", () => {
   });
 });
 
-const server = setupServer(...quoteHandlers);
+const server = setupServer(...authHandlers, ...nftHandlers, ...cartHandlers, ...quoteHandlers);
 const base = "http://kurio.test/api";
 
 function quote(body: unknown) {
@@ -69,5 +73,87 @@ describe("POST /api/quote", () => {
     const parsed = quoteSchema.parse(await (await quote({ items: [], couponCode: null })).json());
     expect(parsed.subtotalEth).toBe("0");
     expect(parsed.totalEth).toBe("0.02");
+  });
+});
+
+describe("cupom salvo no carrinho", () => {
+  beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
+  beforeEach(() => initMockState("?reset=1"));
+  afterAll(() => server.close());
+
+  async function login(): Promise<string> {
+    const response = await fetch(`${base}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "marina@kurio.test", password: "Marina#2026" }),
+    });
+    return (await response.json()).token;
+  }
+
+  function putCoupon(token: string | null, couponCode: string | null) {
+    return fetch(`${base}/cart/coupon`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ couponCode }),
+    });
+  }
+
+  async function storedCoupon(token: string): Promise<string | null> {
+    const response = await fetch(`${base}/cart`, { headers: { Authorization: `Bearer ${token}` } });
+    return (await response.json()).couponCode;
+  }
+
+  it("exige sessão", async () => {
+    expect((await putCoupon(null, "GENESIS10")).status).toBe(401);
+  });
+
+  it("salva o cupom válido no carrinho e o GET /cart devolve", async () => {
+    const token = await login();
+    const response = await putCoupon(token, "genesis10");
+    expect(response.status).toBe(200);
+    expect(await storedCoupon(token)).toBe("GENESIS10");
+    expect(getDatabase().carts["user-marina"].couponCode).toBe("GENESIS10");
+  });
+
+  it("remover limpa o cupom salvo", async () => {
+    const token = await login();
+    await putCoupon(token, "DROP5");
+    expect((await putCoupon(token, null)).status).toBe(200);
+    expect(await storedCoupon(token)).toBeNull();
+  });
+
+  it("cupom inválido ou expirado não substitui o cupom válido salvo", async () => {
+    const token = await login();
+    await putCoupon(token, "GENESIS10");
+
+    const expired = await putCoupon(token, "VENCIDO");
+    expect(expired.status).toBe(422);
+    expect((await expired.json()).error.fields.couponCode).toBeTruthy();
+    const invalid = await putCoupon(token, "XYZ");
+    expect(invalid.status).toBe(422);
+
+    expect(await storedCoupon(token)).toBe("GENESIS10");
+  });
+});
+
+describe("cupom do visitante", () => {
+  const store = new Map<string, string>();
+
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+      removeItem: (key: string) => void store.delete(key),
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("guarda o cupom ao lado do carrinho e remover limpa", () => {
+    setGuestCoupon("GENESIS10");
+    expect(localStorage.getItem(GUEST_COUPON_KEY)).toBe("GENESIS10");
+
+    setGuestCoupon(null);
+    expect(localStorage.getItem(GUEST_COUPON_KEY)).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import type { CartLine } from "@/shared/domain/contracts";
 import { getDatabase, saveDatabase } from "../db";
 import { userFromRequest } from "./auth";
 import { editionsOf, findNftBySlug, tokenIdOf } from "./nfts";
+import { applyCoupon } from "./quote";
 
 const SEPARATOR = "~";
 
@@ -145,6 +146,35 @@ export const cartHandlers = [
     item.quantity = quantity;
     saveDatabase();
     return HttpResponse.json({ item });
+  }),
+
+  // Salva ou limpa o cupom do carrinho. Código inválido/expirado responde 422 e não mexe no cupom salvo.
+  http.put("/api/cart/coupon", async ({ request }) => {
+    const user = userFromRequest(request);
+    if (!user) return unauthorized();
+
+    const { couponCode } = await readBody(request);
+    const cart = cartOf(user.id);
+
+    if (couponCode === null || couponCode === undefined || (typeof couponCode === "string" && couponCode.trim() === "")) {
+      cart.couponCode = null;
+      saveDatabase();
+      return HttpResponse.json({ couponCode: null });
+    }
+    if (typeof couponCode !== "string") {
+      return errorResponse(422, "validation", "Cupom inválido.", { couponCode: "Cupom inválido." });
+    }
+
+    const result = applyCoupon(couponCode);
+    if (!result.ok) {
+      const expired = result.reason === "expired";
+      const message = expired ? "Este cupom expirou." : "Cupom inválido.";
+      return errorResponse(422, expired ? "coupon_expired" : "coupon_invalid", message, { couponCode: message });
+    }
+
+    cart.couponCode = couponCode.trim().toUpperCase();
+    saveDatabase();
+    return HttpResponse.json({ couponCode: cart.couponCode });
   }),
 
   http.delete("/api/cart/items/:id", ({ request, params }) => {

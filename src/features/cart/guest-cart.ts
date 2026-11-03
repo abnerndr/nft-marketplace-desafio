@@ -3,6 +3,8 @@ import { z } from "zod";
 import { cartItemSchema } from "@/shared/domain/contracts";
 
 export const GUEST_CART_KEY = "kurio.guest-cart";
+/** Cupom do visitante, guardado ao lado dos itens para sobreviver a um refresh. */
+export const GUEST_COUPON_KEY = "kurio.guest-coupon";
 
 export type GuestItem = z.infer<typeof cartItemSchema>;
 
@@ -58,6 +60,24 @@ function writeGuestItems(items: GuestItem[]): void {
   notify();
 }
 
+function readCouponRaw(): string {
+  try {
+    return storage()?.getItem(GUEST_COUPON_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function setGuestCoupon(code: string | null): void {
+  try {
+    if (code) storage()?.setItem(GUEST_COUPON_KEY, code);
+    else storage()?.removeItem(GUEST_COUPON_KEY);
+  } catch {
+    // Sem armazenamento disponível: o cupom de visitante não persiste.
+  }
+  notify();
+}
+
 export function restoreGuestItems(items: GuestItem[]): void {
   writeGuestItems(items);
 }
@@ -105,7 +125,7 @@ export function removeGuestItem(slug: string, editionId: string): void {
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (event.key === GUEST_CART_KEY || event.key === null) listener();
+    if (event.key === GUEST_CART_KEY || event.key === GUEST_COUPON_KEY || event.key === null) listener();
   };
   if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
   return () => {
@@ -117,4 +137,10 @@ function subscribe(listener: () => void): () => void {
 /** Texto cru do carrinho de visitante, reativo a mudanças locais e de outras abas. */
 export function useGuestCartRaw(): string {
   return useSyncExternalStore(subscribe, readRaw, () => "");
+}
+
+/** Cupom aplicado do visitante (`null` quando não há), reativo a mudanças locais e de outras abas. */
+export function useGuestCoupon(): string | null {
+  const raw = useSyncExternalStore(subscribe, readCouponRaw, () => "");
+  return raw === "" ? null : raw;
 }

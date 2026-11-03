@@ -18,8 +18,8 @@ import { toParams } from "@/features/catalog/search";
 import { readApiError } from "@/shared/api/errors";
 import type { CartLine } from "@/shared/domain/contracts";
 import { formatEth, mulEth } from "@/shared/domain/money";
-import { useCart, useCartActions } from "./api";
-import { useCheckCoupon, useQuote } from "./quote";
+import { useCart, useCartActions, useCouponActions } from "./api";
+import { useQuote } from "./quote";
 
 const RELATED_COUNT = 5;
 
@@ -197,13 +197,12 @@ function Row({ label, value, className = "" }: { label: string; value: string; c
   );
 }
 
-function Summary({ lines, isGuest }: { lines: CartLine[]; isGuest: boolean }) {
+function Summary({ lines, isGuest, couponCode }: { lines: CartLine[]; isGuest: boolean; couponCode: string | null }) {
   const [draft, setDraft] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
-  const quote = useQuote(lines, appliedCoupon);
-  const checkCoupon = useCheckCoupon(lines);
-  const couponError = checkCoupon.isError
-    ? (readApiError(checkCoupon.error).fields?.couponCode ?? readApiError(checkCoupon.error).message)
+  const quote = useQuote(lines, couponCode);
+  const { apply, clear } = useCouponActions(isGuest, lines);
+  const couponError = apply.isError
+    ? (readApiError(apply.error).fields?.couponCode ?? readApiError(apply.error).message)
     : null;
   const totals = quote.data;
   const pending = "—";
@@ -212,7 +211,8 @@ function Summary({ lines, isGuest }: { lines: CartLine[]; isGuest: boolean }) {
     event.preventDefault();
     const code = draft.trim();
     if (code === "") return;
-    checkCoupon.mutate(code, { onSuccess: setAppliedCoupon });
+    clear.reset();
+    apply.mutate(code, { onSuccess: () => setDraft("") });
   }
 
   return (
@@ -239,7 +239,7 @@ function Summary({ lines, isGuest }: { lines: CartLine[]; isGuest: boolean }) {
             value={draft}
             onChange={(event) => {
               setDraft(event.target.value);
-              if (checkCoupon.isError) checkCoupon.reset();
+              if (apply.isError) apply.reset();
             }}
             aria-invalid={couponError !== null}
             aria-describedby={couponError ? "cart-coupon-error" : undefined}
@@ -248,7 +248,7 @@ function Summary({ lines, isGuest }: { lines: CartLine[]; isGuest: boolean }) {
           />
           <button
             type="submit"
-            disabled={checkCoupon.isPending || draft.trim() === ""}
+            disabled={apply.isPending || draft.trim() === ""}
             className="h-[50px] w-[97px] shrink-0 rounded-[40px] bg-gradient-to-r from-primary/55 to-primary text-[15px] font-bold leading-4 text-foreground disabled:cursor-not-allowed disabled:opacity-60 lg:h-10 lg:w-[102px] lg:rounded-none lg:rounded-r-[3px] lg:bg-primary lg:bg-none lg:text-ink"
           >
             Aplicar
@@ -258,8 +258,27 @@ function Summary({ lines, isGuest }: { lines: CartLine[]; isGuest: boolean }) {
           <p id="cart-coupon-error" role="alert" className="text-xs leading-4 text-text-coral">
             {couponError}
           </p>
-        ) : appliedCoupon ? (
-          <p className="text-xs leading-4 text-text-accent">Cupom {appliedCoupon.toUpperCase()} aplicado.</p>
+        ) : null}
+        {couponCode ? (
+          <div className="flex items-center justify-between text-xs leading-4 text-text-accent">
+            <p>Cupom {couponCode} aplicado.</p>
+            <button
+              type="button"
+              disabled={clear.isPending}
+              onClick={() => {
+                apply.reset();
+                clear.mutate();
+              }}
+              className="underline disabled:opacity-60"
+            >
+              Remover cupom
+            </button>
+          </div>
+        ) : null}
+        {clear.isError ? (
+          <p role="alert" className="text-xs leading-4 text-text-coral">
+            {readApiError(clear.error).message}
+          </p>
         ) : null}
       </form>
 
@@ -439,7 +458,7 @@ export function CartPage() {
                 ))}
               </ul>
             </div>
-            <Summary lines={cart.lines} isGuest={cart.isGuest} />
+            <Summary lines={cart.lines} isGuest={cart.isGuest} couponCode={cart.couponCode} />
           </div>
         )}
       </div>
