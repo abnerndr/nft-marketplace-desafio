@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-03T21:24:06.100Z",
+  "generatedAt": "2026-11-04T02:45:34.108Z",
   "lighthouse": "13.6.0",
   "chrome": "Google Chrome for Testing 156.0.8078.4",
   "runsPerPage": 3,
@@ -16,40 +16,45 @@
       "runs": [
         {
           "scores": {
-            "performance": 91,
-            "accessibility": 99,
+            "performance": 89,
+            "accessibility": 100,
             "best-practices": 100,
             "seo": 100
           },
-          "lcpMs": 3285,
+          "lcpMs": 3034,
           "cls": 0,
-          "tbtMs": 135,
-          "fcpMs": 815,
+          "tbtMs": 256,
+          "fcpMs": 756,
           "failing": [
             {
               "id": "largest-contentful-paint",
               "title": "Largest Contentful Paint",
-              "score": 0.7
+              "score": 0.77
+            },
+            {
+              "id": "total-blocking-time",
+              "title": "Total Blocking Time",
+              "score": 0.84
             },
             {
               "id": "max-potential-fid",
               "title": "Max Potential First Input Delay",
-              "score": 0.79
+              "score": 0.76
             },
             {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "heading-order",
-              "title": "Heading elements are not in a sequentially-descending order",
-              "score": 0
+              "id": "interactive",
+              "title": "Time to Interactive",
+              "score": 0.68
             },
             {
               "id": "unused-javascript",
               "title": "Reduce unused JavaScript",
               "score": 0
+            },
+            {
+              "id": "image-delivery-insight",
+              "title": "Improve image delivery",
+              "score": 0.5
             },
             {
               "id": "network-dependency-tree-insight",
@@ -66,44 +71,44 @@
         {
           "scores": {
             "performance": 90,
-            "accessibility": 99,
+            "accessibility": 100,
             "best-practices": 100,
             "seo": 100
           },
-          "lcpMs": 3331,
+          "lcpMs": 3019,
           "cls": 0,
-          "tbtMs": 182,
-          "fcpMs": 824,
+          "tbtMs": 243,
+          "fcpMs": 754,
           "failing": [
             {
               "id": "largest-contentful-paint",
               "title": "Largest Contentful Paint",
-              "score": 0.69
+              "score": 0.77
+            },
+            {
+              "id": "total-blocking-time",
+              "title": "Total Blocking Time",
+              "score": 0.85
             },
             {
               "id": "max-potential-fid",
               "title": "Max Potential First Input Delay",
-              "score": 0.68
+              "score": 0.79
             },
             {
               "id": "interactive",
               "title": "Time to Interactive",
-              "score": 0.89
-            },
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "heading-order",
-              "title": "Heading elements are not in a sequentially-descending order",
-              "score": 0
+              "score": 0.68
             },
             {
               "id": "unused-javascript",
               "title": "Reduce unused JavaScript",
               "score": 0
+            },
+            {
+              "id": "image-delivery-insight",
+              "title": "Improve image delivery",
+              "score": 0.5
             },
             {
               "id": "network-dependency-tree-insight",
@@ -119,50 +124,45 @@
         },
         {
           "scores": {
-            "performance": 88,
-            "accessibility": 99,
+            "performance": 91,
+            "accessibility": 100,
             "best-practices": 100,
             "seo": 100
           },
-          "lcpMs": 3337,
+          "lcpMs": 3025,
           "cls": 0,
-          "tbtMs": 210,
-          "fcpMs": 818,
+          "tbtMs": 206,
+          "fcpMs": 755,
           "failing": [
             {
               "id": "largest-contentful-paint",
               "title": "Largest Contentful Paint",
-              "score": 0.68
+              "score": 0.77
             },
             {
               "id": "total-blocking-time",
               "title": "Total Blocking Time",
-              "score": 0.88
+              "score": 0.89
             },
             {
               "id": "max-potential-fid",
               "title": "Max Potential First Input Delay",
-              "score": 0.63
+              "score": 0.78
             },
             {
               "id": "interactive",
               "title": "Time to Interactive",
-              "score": 0.89
-            },
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "heading-order",
-              "title": "Heading elements are not in a sequentially-descending order",
-              "score": 0
+              "score": 0.75
             },
             {
               "id": "unused-javascript",
               "title": "Reduce unused JavaScript",
               "score": 0
+            },
+            {
+              "id": "image-delivery-insight",
+              "title": "Improve image delivery",
+              "score": 0.5
             },
             {
               "id": "network-dependency-tree-insight",
@@ -180,14 +180,14 @@
       "median": {
         "scores": {
           "performance": 90,
-          "accessibility": 99,
+          "accessibility": 100,
           "best-practices": 100,
           "seo": 100
         },
-        "lcpMs": 3331,
+        "lcpMs": 3025,
         "cls": 0,
-        "tbtMs": 182,
-        "fcpMs": 818
+        "tbtMs": 243,
+        "fcpMs": 755
       },
       "meetsTargets": true
     },
@@ -197,31 +197,328 @@
       "runs": [
         {
           "scores": {
-            "performance": 99,
-            "accessibility": 95,
+            "performance": 100,
+            "accessibility": 100,
             "best-practices": 100,
             "seo": 100
           },
-          "lcpMs": 829,
+          "lcpMs": 650,
           "cls": 0.0002,
           "tbtMs": 0,
-          "fcpMs": 273,
+          "fcpMs": 204,
           "failing": [
             {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
+              "id": "unused-javascript",
+              "title": "Reduce unused JavaScript",
               "score": 0
             },
             {
-              "id": "heading-order",
-              "title": "Heading elements are not in a sequentially-descending order",
+              "id": "image-delivery-insight",
+              "title": "Improve image delivery",
+              "score": 0.5
+            },
+            {
+              "id": "lcp-discovery-insight",
+              "title": "LCP request discovery",
               "score": 0
             },
             {
-              "id": "target-size",
-              "title": "Touch targets do not have sufficient size or spacing.",
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
               "score": 0
             },
+            {
+              "id": "render-blocking-insight",
+              "title": "Render-blocking requests",
+              "score": 0.5
+            }
+          ]
+        },
+        {
+          "scores": {
+            "performance": 100,
+            "accessibility": 100,
+            "best-practices": 100,
+            "seo": 100
+          },
+          "lcpMs": 644,
+          "cls": 0.0002,
+          "tbtMs": 0,
+          "fcpMs": 205,
+          "failing": [
+            {
+              "id": "unused-javascript",
+              "title": "Reduce unused JavaScript",
+              "score": 0
+            },
+            {
+              "id": "image-delivery-insight",
+              "title": "Improve image delivery",
+              "score": 0.5
+            },
+            {
+              "id": "lcp-discovery-insight",
+              "title": "LCP request discovery",
+              "score": 0
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "score": 0
+            },
+            {
+              "id": "render-blocking-insight",
+              "title": "Render-blocking requests",
+              "score": 0.5
+            }
+          ]
+        },
+        {
+          "scores": {
+            "performance": 100,
+            "accessibility": 100,
+            "best-practices": 100,
+            "seo": 100
+          },
+          "lcpMs": 639,
+          "cls": 0.0002,
+          "tbtMs": 0,
+          "fcpMs": 203,
+          "failing": [
+            {
+              "id": "unused-javascript",
+              "title": "Reduce unused JavaScript",
+              "score": 0
+            },
+            {
+              "id": "image-delivery-insight",
+              "title": "Improve image delivery",
+              "score": 0.5
+            },
+            {
+              "id": "lcp-discovery-insight",
+              "title": "LCP request discovery",
+              "score": 0
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "score": 0
+            },
+            {
+              "id": "render-blocking-insight",
+              "title": "Render-blocking requests",
+              "score": 0.5
+            }
+          ]
+        }
+      ],
+      "median": {
+        "scores": {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100
+        },
+        "lcpMs": 644,
+        "cls": 0.0002,
+        "tbtMs": 0,
+        "fcpMs": 204
+      },
+      "meetsTargets": true
+    },
+    {
+      "page": "/nfts/emerald-ape-042",
+      "formFactor": "mobile",
+      "runs": [
+        {
+          "scores": {
+            "performance": 85,
+            "accessibility": 100,
+            "best-practices": 100,
+            "seo": 100
+          },
+          "lcpMs": 3990,
+          "cls": 0,
+          "tbtMs": 197,
+          "fcpMs": 758,
+          "failing": [
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "score": 0.5
+            },
+            {
+              "id": "max-potential-fid",
+              "title": "Max Potential First Input Delay",
+              "score": 0.81
+            },
+            {
+              "id": "interactive",
+              "title": "Time to Interactive",
+              "score": 0.87
+            },
+            {
+              "id": "unused-javascript",
+              "title": "Reduce unused JavaScript",
+              "score": 0
+            },
+            {
+              "id": "lcp-discovery-insight",
+              "title": "LCP request discovery",
+              "score": 0
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "score": 0
+            },
+            {
+              "id": "render-blocking-insight",
+              "title": "Render-blocking requests",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "scores": {
+            "performance": 84,
+            "accessibility": 100,
+            "best-practices": 100,
+            "seo": 100
+          },
+          "lcpMs": 3989,
+          "cls": 0,
+          "tbtMs": 214,
+          "fcpMs": 757,
+          "failing": [
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "score": 0.5
+            },
+            {
+              "id": "total-blocking-time",
+              "title": "Total Blocking Time",
+              "score": 0.88
+            },
+            {
+              "id": "max-potential-fid",
+              "title": "Max Potential First Input Delay",
+              "score": 0.83
+            },
+            {
+              "id": "interactive",
+              "title": "Time to Interactive",
+              "score": 0.87
+            },
+            {
+              "id": "unused-javascript",
+              "title": "Reduce unused JavaScript",
+              "score": 0
+            },
+            {
+              "id": "lcp-discovery-insight",
+              "title": "LCP request discovery",
+              "score": 0
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "score": 0
+            },
+            {
+              "id": "render-blocking-insight",
+              "title": "Render-blocking requests",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "scores": {
+            "performance": 84,
+            "accessibility": 100,
+            "best-practices": 100,
+            "seo": 100
+          },
+          "lcpMs": 3978,
+          "cls": 0,
+          "tbtMs": 207,
+          "fcpMs": 756,
+          "failing": [
+            {
+              "id": "largest-contentful-paint",
+              "title": "Largest Contentful Paint",
+              "score": 0.5
+            },
+            {
+              "id": "total-blocking-time",
+              "title": "Total Blocking Time",
+              "score": 0.89
+            },
+            {
+              "id": "max-potential-fid",
+              "title": "Max Potential First Input Delay",
+              "score": 0.86
+            },
+            {
+              "id": "interactive",
+              "title": "Time to Interactive",
+              "score": 0.87
+            },
+            {
+              "id": "unused-javascript",
+              "title": "Reduce unused JavaScript",
+              "score": 0
+            },
+            {
+              "id": "lcp-discovery-insight",
+              "title": "LCP request discovery",
+              "score": 0
+            },
+            {
+              "id": "network-dependency-tree-insight",
+              "title": "Network dependency tree",
+              "score": 0
+            },
+            {
+              "id": "render-blocking-insight",
+              "title": "Render-blocking requests",
+              "score": 0
+            }
+          ]
+        }
+      ],
+      "median": {
+        "scores": {
+          "performance": 84,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100
+        },
+        "lcpMs": 3989,
+        "cls": 0,
+        "tbtMs": 207,
+        "fcpMs": 757
+      },
+      "meetsTargets": false
+    },
+    {
+      "page": "/nfts/emerald-ape-042",
+      "formFactor": "desktop",
+      "runs": [
+        {
+          "scores": {
+            "performance": 99,
+            "accessibility": 100,
+            "best-practices": 100,
+            "seo": 100
+          },
+          "lcpMs": 863,
+          "cls": 0,
+          "tbtMs": 0,
+          "fcpMs": 208,
+          "failing": [
             {
               "id": "unused-javascript",
               "title": "Reduce unused JavaScript",
@@ -247,30 +544,15 @@
         {
           "scores": {
             "performance": 99,
-            "accessibility": 95,
+            "accessibility": 100,
             "best-practices": 100,
             "seo": 100
           },
-          "lcpMs": 888,
-          "cls": 0.0002,
+          "lcpMs": 859,
+          "cls": 0,
           "tbtMs": 0,
-          "fcpMs": 284,
+          "fcpMs": 205,
           "failing": [
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "heading-order",
-              "title": "Heading elements are not in a sequentially-descending order",
-              "score": 0
-            },
-            {
-              "id": "target-size",
-              "title": "Touch targets do not have sufficient size or spacing.",
-              "score": 0
-            },
             {
               "id": "unused-javascript",
               "title": "Reduce unused JavaScript",
@@ -296,30 +578,15 @@
         {
           "scores": {
             "performance": 99,
-            "accessibility": 95,
+            "accessibility": 100,
             "best-practices": 100,
             "seo": 100
           },
-          "lcpMs": 829,
-          "cls": 0.0002,
+          "lcpMs": 870,
+          "cls": 0,
           "tbtMs": 0,
-          "fcpMs": 271,
+          "fcpMs": 205,
           "failing": [
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "heading-order",
-              "title": "Heading elements are not in a sequentially-descending order",
-              "score": 0
-            },
-            {
-              "id": "target-size",
-              "title": "Touch targets do not have sufficient size or spacing.",
-              "score": 0
-            },
             {
               "id": "unused-javascript",
               "title": "Reduce unused JavaScript",
@@ -346,383 +613,16 @@
       "median": {
         "scores": {
           "performance": 99,
-          "accessibility": 95,
+          "accessibility": 100,
           "best-practices": 100,
           "seo": 100
         },
-        "lcpMs": 829,
-        "cls": 0.0002,
+        "lcpMs": 863,
+        "cls": 0,
         "tbtMs": 0,
-        "fcpMs": 273
+        "fcpMs": 205
       },
       "meetsTargets": true
-    },
-    {
-      "page": "/nfts/emerald-ape-042",
-      "formFactor": "mobile",
-      "runs": [
-        {
-          "scores": {
-            "performance": 85,
-            "accessibility": 100,
-            "best-practices": 100,
-            "seo": 100
-          },
-          "lcpMs": 3581,
-          "cls": 0.1142,
-          "tbtMs": 168,
-          "fcpMs": 778,
-          "failing": [
-            {
-              "id": "largest-contentful-paint",
-              "title": "Largest Contentful Paint",
-              "score": 0.61
-            },
-            {
-              "id": "max-potential-fid",
-              "title": "Max Potential First Input Delay",
-              "score": 0.75
-            },
-            {
-              "id": "cumulative-layout-shift",
-              "title": "Cumulative Layout Shift",
-              "score": 0.86
-            },
-            {
-              "id": "layout-shifts",
-              "title": "Avoid large layout shifts",
-              "score": 0
-            },
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "unused-javascript",
-              "title": "Reduce unused JavaScript",
-              "score": 0
-            },
-            {
-              "id": "cls-culprits-insight",
-              "title": "Layout shift culprits",
-              "score": 0
-            },
-            {
-              "id": "network-dependency-tree-insight",
-              "title": "Network dependency tree",
-              "score": 0
-            },
-            {
-              "id": "render-blocking-insight",
-              "title": "Render-blocking requests",
-              "score": 0
-            }
-          ]
-        },
-        {
-          "scores": {
-            "performance": 84,
-            "accessibility": 100,
-            "best-practices": 100,
-            "seo": 100
-          },
-          "lcpMs": 3579,
-          "cls": 0.1142,
-          "tbtMs": 173,
-          "fcpMs": 775,
-          "failing": [
-            {
-              "id": "largest-contentful-paint",
-              "title": "Largest Contentful Paint",
-              "score": 0.61
-            },
-            {
-              "id": "max-potential-fid",
-              "title": "Max Potential First Input Delay",
-              "score": 0.76
-            },
-            {
-              "id": "cumulative-layout-shift",
-              "title": "Cumulative Layout Shift",
-              "score": 0.86
-            },
-            {
-              "id": "layout-shifts",
-              "title": "Avoid large layout shifts",
-              "score": 0
-            },
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "unused-javascript",
-              "title": "Reduce unused JavaScript",
-              "score": 0
-            },
-            {
-              "id": "cls-culprits-insight",
-              "title": "Layout shift culprits",
-              "score": 0
-            },
-            {
-              "id": "network-dependency-tree-insight",
-              "title": "Network dependency tree",
-              "score": 0
-            },
-            {
-              "id": "render-blocking-insight",
-              "title": "Render-blocking requests",
-              "score": 0
-            }
-          ]
-        },
-        {
-          "scores": {
-            "performance": 83,
-            "accessibility": 100,
-            "best-practices": 100,
-            "seo": 100
-          },
-          "lcpMs": 3608,
-          "cls": 0.1142,
-          "tbtMs": 216,
-          "fcpMs": 775,
-          "failing": [
-            {
-              "id": "largest-contentful-paint",
-              "title": "Largest Contentful Paint",
-              "score": 0.61
-            },
-            {
-              "id": "total-blocking-time",
-              "title": "Total Blocking Time",
-              "score": 0.88
-            },
-            {
-              "id": "max-potential-fid",
-              "title": "Max Potential First Input Delay",
-              "score": 0.67
-            },
-            {
-              "id": "cumulative-layout-shift",
-              "title": "Cumulative Layout Shift",
-              "score": 0.86
-            },
-            {
-              "id": "layout-shifts",
-              "title": "Avoid large layout shifts",
-              "score": 0
-            },
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "unused-javascript",
-              "title": "Reduce unused JavaScript",
-              "score": 0
-            },
-            {
-              "id": "cls-culprits-insight",
-              "title": "Layout shift culprits",
-              "score": 0
-            },
-            {
-              "id": "network-dependency-tree-insight",
-              "title": "Network dependency tree",
-              "score": 0
-            },
-            {
-              "id": "render-blocking-insight",
-              "title": "Render-blocking requests",
-              "score": 0
-            }
-          ]
-        }
-      ],
-      "median": {
-        "scores": {
-          "performance": 84,
-          "accessibility": 100,
-          "best-practices": 100,
-          "seo": 100
-        },
-        "lcpMs": 3581,
-        "cls": 0.1142,
-        "tbtMs": 173,
-        "fcpMs": 775
-      },
-      "meetsTargets": false
-    },
-    {
-      "page": "/nfts/emerald-ape-042",
-      "formFactor": "desktop",
-      "runs": [
-        {
-          "scores": {
-            "performance": 89,
-            "accessibility": 100,
-            "best-practices": 100,
-            "seo": 100
-          },
-          "lcpMs": 759,
-          "cls": 0.2113,
-          "tbtMs": 0,
-          "fcpMs": 228,
-          "failing": [
-            {
-              "id": "cumulative-layout-shift",
-              "title": "Cumulative Layout Shift",
-              "score": 0.59
-            },
-            {
-              "id": "layout-shifts",
-              "title": "Avoid large layout shifts",
-              "score": 0
-            },
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "unused-javascript",
-              "title": "Reduce unused JavaScript",
-              "score": 0
-            },
-            {
-              "id": "cls-culprits-insight",
-              "title": "Layout shift culprits",
-              "score": 0
-            },
-            {
-              "id": "network-dependency-tree-insight",
-              "title": "Network dependency tree",
-              "score": 0
-            },
-            {
-              "id": "render-blocking-insight",
-              "title": "Render-blocking requests",
-              "score": 0.5
-            }
-          ]
-        },
-        {
-          "scores": {
-            "performance": 89,
-            "accessibility": 100,
-            "best-practices": 100,
-            "seo": 100
-          },
-          "lcpMs": 766,
-          "cls": 0.2113,
-          "tbtMs": 0,
-          "fcpMs": 233,
-          "failing": [
-            {
-              "id": "cumulative-layout-shift",
-              "title": "Cumulative Layout Shift",
-              "score": 0.59
-            },
-            {
-              "id": "layout-shifts",
-              "title": "Avoid large layout shifts",
-              "score": 0
-            },
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "unused-javascript",
-              "title": "Reduce unused JavaScript",
-              "score": 0
-            },
-            {
-              "id": "cls-culprits-insight",
-              "title": "Layout shift culprits",
-              "score": 0
-            },
-            {
-              "id": "network-dependency-tree-insight",
-              "title": "Network dependency tree",
-              "score": 0
-            },
-            {
-              "id": "render-blocking-insight",
-              "title": "Render-blocking requests",
-              "score": 0.5
-            }
-          ]
-        },
-        {
-          "scores": {
-            "performance": 89,
-            "accessibility": 100,
-            "best-practices": 100,
-            "seo": 100
-          },
-          "lcpMs": 766,
-          "cls": 0.2113,
-          "tbtMs": 0,
-          "fcpMs": 233,
-          "failing": [
-            {
-              "id": "cumulative-layout-shift",
-              "title": "Cumulative Layout Shift",
-              "score": 0.59
-            },
-            {
-              "id": "layout-shifts",
-              "title": "Avoid large layout shifts",
-              "score": 0
-            },
-            {
-              "id": "valid-source-maps",
-              "title": "Missing source maps for large first-party JavaScript",
-              "score": 0
-            },
-            {
-              "id": "unused-javascript",
-              "title": "Reduce unused JavaScript",
-              "score": 0
-            },
-            {
-              "id": "cls-culprits-insight",
-              "title": "Layout shift culprits",
-              "score": 0
-            },
-            {
-              "id": "network-dependency-tree-insight",
-              "title": "Network dependency tree",
-              "score": 0
-            },
-            {
-              "id": "render-blocking-insight",
-              "title": "Render-blocking requests",
-              "score": 0.5
-            }
-          ]
-        }
-      ],
-      "median": {
-        "scores": {
-          "performance": 89,
-          "accessibility": 100,
-          "best-practices": 100,
-          "seo": 100
-        },
-        "lcpMs": 766,
-        "cls": 0.2113,
-        "tbtMs": 0,
-        "fcpMs": 233
-      },
-      "meetsTargets": false
     }
   ]
 }

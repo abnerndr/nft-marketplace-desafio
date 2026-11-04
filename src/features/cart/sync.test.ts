@@ -103,7 +103,9 @@ describe("carrinho de visitante e sincronização no login", () => {
     addGuestItem({ slug: "sage-nomad-009", editionId: "ed-1-50", quantity: 2 });
     signIn();
     const first = await syncGuestCart("user-marina");
-    expect(first?.cart.items.find((item: { slug: string }) => item.slug === "sage-nomad-009")).toBeTruthy();
+    expect(
+      (first?.cart.items as { slug: string }[] | undefined)?.find((item) => item.slug === "sage-nomad-009"),
+    ).toBeTruthy();
 
     // Simula tentativa regravada e guest limpo: reenvio via mergeId no banco.
     const mergeId = Object.keys(getDatabase().cartMerges ?? {})[0]?.split(":")[1];

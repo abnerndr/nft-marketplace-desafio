@@ -121,22 +121,22 @@
 .range-thumb::-webkit-slider-thumb {
     appearance: none;
     pointer-events: auto;
-    width: 15px;
-    height: 15px;
+    width: 24px;
+    height: 24px;
     border-radius: 9999px;
     background: var(--color-primary);
     border: 3px solid var(--color-ink);
-    box-sizing: content-box;
+    box-sizing: border-box;
     cursor: pointer;
 }
 .range-thumb::-moz-range-thumb {
     pointer-events: auto;
-    width: 15px;
-    height: 15px;
+    width: 24px;
+    height: 24px;
     border-radius: 9999px;
     background: var(--color-primary);
     border: 3px solid var(--color-ink);
-    box-sizing: content-box;
+    box-sizing: border-box;
     cursor: pointer;
 }
 .range-thumb:focus-visible::-webkit-slider-thumb {

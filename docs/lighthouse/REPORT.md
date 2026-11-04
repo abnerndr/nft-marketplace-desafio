@@ -18,84 +18,64 @@ Metas do enunciado: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥
 
 | Página | Formato | Performance | Accessibility | Best Practices | SEO | LCP | CLS | TBT | Metas |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `/` | mobile | **90** | 99 | 100 | 100 | 3331 ms | 0 | 182 ms | atingidas |
-| `/` | desktop | 99 | 95 | 100 | 100 | 829 ms | 0,0002 | 0 ms | atingidas |
-| `/nfts/emerald-ape-042` | mobile | **84** | 100 | 100 | 100 | 3581 ms | **0,1142** | 173 ms | Performance abaixo |
-| `/nfts/emerald-ape-042` | desktop | **89** | 100 | 100 | 100 | 766 ms | **0,2113** | 0 ms | Performance abaixo |
+| `/` | mobile | **90** | 100 | 100 | 100 | 3025 ms | 0 | 243 ms | atingidas |
+| `/` | desktop | 100 | 100 | 100 | 100 | 644 ms | 0,0002 | 0 ms | atingidas |
+| `/nfts/emerald-ape-042` | mobile | **84** | 100 | 100 | 100 | 3989 ms | **0** | 207 ms | Performance abaixo |
+| `/nfts/emerald-ape-042` | desktop | **99** | 100 | 100 | 100 | 863 ms | **0** | 0 ms | atingidas |
 
-Performance por execução: `/` mobile 91/90/88, `/` desktop 99/99/99, detalhe mobile 85/84/83, detalhe desktop
-89/89/89. Máquina: WSL2 no Linux; os números variam alguns pontos entre execuções, sobretudo no mobile.
+Performance por execução: `/` mobile 89/90/91, `/` desktop 100/100/100, detalhe mobile 85/84/84, detalhe desktop
+99/99/99. Máquina: WSL2 no Linux; os números variam alguns pontos entre execuções, sobretudo no mobile.
 
-Accessibility, Best Practices e SEO atingem a meta nas quatro combinações. Performance fecha em `/` (desktop com
-folga, mobile no limite) e **não fecha no detalhe**, nos dois formatos.
+Accessibility, Best Practices e SEO atingem 100 nas quatro combinações. Performance fecha em `/` (mobile no
+limite, desktop com folga) e no detalhe desktop; **não fecha no detalhe mobile** (LCP ~4 s sob throttling + MSW).
 
 ## Alterações feitas por causa da auditoria
 
-A primeira execução teve SEO 83 em todas as páginas, abaixo da meta de 90. Duas causas reais, corrigidas sem mexer em imagem, fonte ou mock:
+### CLS do detalhe (era 0,11 / 0,21)
 
-- `meta-description` ausente: `index.html` ganhou `<meta name="description">` e um título descritivo.
-- `robots-txt` inválido: sem arquivo, o fallback de SPA devolvia `index.html` para `/robots.txt` e o Lighthouse
-  contava 14 erros. `public/robots.txt` (`User-agent: *`, `Allow: /`) resolve.
+O esqueleto do detalhe reservava ~450 px; o conteúdo real passa de 1600 px e empurrava o rodapé. `DetailSkeleton`
+agora espelha galeria, bloco de info, descrição e recomendações com `min-height` compatível. **CLS do detalhe
+foi a 0** nos dois formatos.
 
-SEO foi de 83 para 100. As demais notas não mudaram.
+### Bundle e first paint
+
+- Rotas de checkout, carrinho, conta, pedidos e auth carregam sob `React.lazy` + `Suspense`.
+- MSW sobe em paralelo ao primeiro render (`import()` dinâmico); requests HTTP e Socket.IO esperam
+  `waitForMocks()` para não falar com a rede real antes do worker.
+- PNGs do hero/promo redimensionados (~600–900 px) com originais em `src/assets/home/original/`.
+- Heading do catálogo (`h2` sr-only) e alvos dos sliders de preço (≥24 px) corrigidos para a11y.
+
+### Ambiente WSL
+
+`scripts/lighthouse.mjs` passa `userDataDir` Linux explícito ao chrome-launcher (evita `EACCES` em
+`/mnt/c/Users/.../AppData`).
 
 ## Causas do que ficou abaixo
 
-### Detalhe: CLS 0,11 (mobile) e 0,21 (desktop)
+### Detalhe mobile: Performance 84 (LCP ~4 s)
 
-O deslocamento é do `<footer>`. O esqueleto do detalhe (`DetailSkeleton` em `features/nft/detail-page.tsx`) tem
-cerca de 450 px de altura (`h-[448px]` no desktop); quando a query resolve, o conteúdo real passa de 1600 px e empurra o rodapé para
-baixo. O Lighthouse aponta `1 layout shift found` com o rodapé como elemento deslocado. A correção é reservar a
-altura do conteúdo no esqueleto (`min-height` ou um esqueleto com as mesmas seções). Não foi feita nesta task:
-mexe em layout da tela e merece revisão visual própria.
+O LCP do detalhe só fecha depois do JS + worker MSW + `GET /api/nfts/:slug`. Com throttling mobile do
+Lighthouse isso fica ~4 s. Tentativas de antecipar LCP com poster no skeleton pioraram a nota (PNG grande
+vira o LCP). Desligar mocks na auditoria é proibido pelo plano. O detalhe **desktop** sobe de 89 → 99
+graças ao CLS zerado e ao split de rotas.
 
-Uma tentativa de fixar o tamanho das imagens das estrelas (`<img>` de data URI sem `width` e `height`) foi
-descartada: o CLS não mudou, então não era a causa.
+### `/` mobile: LCP ~3 s, Performance 90
 
-### Detalhe: LCP 3,6 s no mobile
+No limite da meta. O custo dominante continua sendo o bundle de demonstração com MSW; o paint antecipado
+(UI antes do worker) recupera a mediana para ≥90.
 
-Divisão do LCP: tempo até o primeiro byte de 2,6 ms e atraso de renderização de 312 ms; o resto é o que vem antes:
-baixar e executar o JavaScript, subir o worker do MSW e buscar o detalhe. O elemento de LCP é um parágrafo de
-texto, não imagem. Isso, somado ao CLS, deixa a Performance do detalhe em 84 no mobile e 89 no desktop.
+### Causas comuns
 
-### `/` mobile: LCP 3,3 s e Performance 90
-
-No limite da meta. O elemento de LCP é uma imagem SVG inline (data URI) do hero, e o atraso é de
-renderização (255 ms): a página só monta depois do JavaScript e do worker.
-
-### Causas comuns às quatro medições
-
-- `unused-javascript`: economia estimada de 180 KiB. O app é um bundle único (`index-*.js`, ~1,2 MB, 395 KB
-  gzip) sem divisão por rota, e inclui `msw` e `socket.io-client`.
-- `render-blocking-insight`: ~150 ms em mobile.
-- `valid-source-maps`: o build de produção não publica source maps. Não afeta nota de categoria.
-- `main.tsx` faz `await enableMocks()` antes do primeiro render. É o custo do build de demonstração com mocks
-  ligados: com `VITE_ENABLE_MOCKS=false` o app renderiza sem esperar o worker.
-- As imagens decorativas do hero e das seções (`hero-art.png`, `art-*.png`, ~1,9 a 2,1 MB cada) são pesadas.
-  Foram mantidas (são do Figma); não entram nas medianas como LCP, mas pesam no total transferido.
-
-### Accessibility, abaixo de 100
-
-- `heading-order` em `/` (um `h3` sem `h2` antes) e, no desktop, `target-size` nos dois sliders de preço do
-  filtro (`input type=range`). As duas falhas deixam `/` em 99 (mobile) e 95 (desktop): acima da meta, mas sem
-  folga no desktop.
-
-## Próximos passos sugeridos
-
-1. Dar ao esqueleto do detalhe a altura do conteúdo real (corrige o CLS e sobe a Performance do detalhe).
-2. Dividir o bundle por rota (`React.lazy` nas telas de checkout, conta e pedidos) e carregar o `msw` só com os
-   mocks ligados.
-3. Converter ou redimensionar os PNGs do hero sem tirá-los da página.
-4. Ajustar a hierarquia de títulos do catálogo e o alvo dos sliders.
+- `unused-javascript`: MSW + Socket.IO no chunk dinâmico de mocks (~700 KB) — necessário na demo.
+- `render-blocking-insight` / fontes Roboto Mono.
+- `valid-source-maps`: build de produção sem source maps (não afeta nota de categoria).
 
 ## Como reproduzir
 
 ```bash
-npm run lighthouse                          # build + 4 combinações x 3 medições
-LIGHTHOUSE_SKIP_BUILD=1 npm run lighthouse  # reaproveita dist/
-LIGHTHOUSE_RUNS=5 npm run lighthouse        # mais medições
-CHROME_PATH=/caminho/do/chrome npm run lighthouse
+npm run lighthouse
+# ou, com dist já gerado:
+LIGHTHOUSE_SKIP_BUILD=1 npm run lighthouse
 ```
 
-Sem `CHROME_PATH`, o script usa o Chromium do Playwright (`npx playwright install chromium`) e, na falta dele,
-deixa o `chrome-launcher` procurar um Chrome instalado.
+Relatórios HTML/JSON: `reports/lighthouse/`. Medianas: `docs/lighthouse/results.md`.

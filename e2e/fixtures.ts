@@ -26,7 +26,7 @@ export const SEED = {
 } as const;
 
 type StoredDb = {
-  orders: { id: string; status: string }[];
+  orders: { id: string; status: string; snapshot?: unknown }[];
   carts: Record<string, { items: { slug: string; quantity: number }[]; couponCode: string | null }>;
   favorites: Record<string, string[]>;
   idempotency?: Record<string, { orderId: string }>;

@@ -18,7 +18,7 @@ export function ScenarioPanel() {
   return (
     <aside
       aria-label="Painel de cenários"
-      className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 text-sm"
+      className="fixed bottom-24 left-4 z-50 flex flex-col items-start gap-2 text-sm lg:bottom-4 lg:right-4 lg:left-auto lg:items-end"
     >
       {open ? (
         <div className="flex w-72 flex-col gap-3 rounded-lg border border-white/20 bg-ink p-4 shadow-lg">

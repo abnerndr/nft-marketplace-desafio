@@ -1,6 +1,7 @@
 import { setupWorker } from "msw/browser";
 import { initMockState, resetDatabase, setScenario, switchScenario } from "./db";
 import { handlers } from "./handlers";
+import { markMocksReady } from "./ready";
 import { isScenarioId, type ScenarioId } from "./scenarios";
 import { clearPriceSchedules, disconnectSocket, emitSocketEvent, reconnectSocket, socketHandlers } from "./socket";
 
@@ -25,32 +26,36 @@ declare global {
 export const MOCK_EVENT = "kurio:mock";
 
 export async function enableMocks(): Promise<void> {
-  if (import.meta.env.VITE_ENABLE_MOCKS === "false") return;
+  try {
+    if (import.meta.env.VITE_ENABLE_MOCKS === "false") return;
 
-  const envScenario = import.meta.env.VITE_DEFAULT_SCENARIO;
-  initMockState(window.location.search, isScenarioId(envScenario) ? envScenario : "default");
+    const envScenario = import.meta.env.VITE_DEFAULT_SCENARIO;
+    initMockState(window.location.search, isScenarioId(envScenario) ? envScenario : "default");
 
-  window.__kurio = {
-    reset: () => {
-      clearPriceSchedules();
-      disconnectSocket();
-      resetDatabase();
-    },
-    setScenario: (id) => {
-      if (!isScenarioId(id)) throw new Error(`Cenário desconhecido: ${String(id)}`);
-      setScenario(id);
-    },
-    switchScenario: (id) => {
-      if (!isScenarioId(id)) throw new Error(`Cenário desconhecido: ${String(id)}`);
-      switchScenario(id);
-    },
-    emit: (type, payload) => {
-      window.dispatchEvent(new CustomEvent(MOCK_EVENT, { detail: { type, payload } }));
-      emitSocketEvent(type, payload);
-    },
-    disconnectSocket,
-    reconnectSocket,
-  };
+    window.__kurio = {
+      reset: () => {
+        clearPriceSchedules();
+        disconnectSocket();
+        resetDatabase();
+      },
+      setScenario: (id) => {
+        if (!isScenarioId(id)) throw new Error(`Cenário desconhecido: ${String(id)}`);
+        setScenario(id);
+      },
+      switchScenario: (id) => {
+        if (!isScenarioId(id)) throw new Error(`Cenário desconhecido: ${String(id)}`);
+        switchScenario(id);
+      },
+      emit: (type, payload) => {
+        window.dispatchEvent(new CustomEvent(MOCK_EVENT, { detail: { type, payload } }));
+        emitSocketEvent(type, payload);
+      },
+      disconnectSocket,
+      reconnectSocket,
+    };
 
-  await worker.start();
+    await worker.start();
+  } finally {
+    markMocksReady();
+  }
 }

@@ -4,6 +4,7 @@ import {
   isCurrentSession,
   type SessionIdentity,
 } from "@/features/auth/session-identity";
+import { waitForMocks } from "@/mocks/ready";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "/api",
@@ -27,7 +28,8 @@ export function requestMatchesCurrentSession(stamp: SessionStamp | undefined, to
   return isCurrentSession(stamp.identity);
 }
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
+  await waitForMocks();
   const token = readToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   (config as StampedConfig).kurioSession = { identity: captureSessionIdentity(), token };

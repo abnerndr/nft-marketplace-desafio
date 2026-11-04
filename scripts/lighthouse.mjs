@@ -137,19 +137,13 @@ async function main() {
     await waitForServer(ORIGIN);
 
     const chromePath = await resolveChrome();
-    // Perfil temporário passado por flag. No WSL o chrome-launcher converte `userDataDir` para um caminho
-    // do Windows, que um Chrome Linux trata como pasta relativa e deixa lixo no repositório.
+    // WSL: chrome-launcher trata `userDataDir: false` como falsy e cai em mkdtemp no AppData do Windows
+    // (EACCES). Passar um diretório Linux explícito evita isso.
     profileDir = await mkdtemp(path.join(os.tmpdir(), "kurio-lighthouse-"));
     chrome = await launch({
       chromePath,
-      userDataDir: false,
-      chromeFlags: [
-        `--user-data-dir=${profileDir}`,
-        "--headless=new",
-        "--no-sandbox",
-        "--disable-gpu",
-        "--disable-dev-shm-usage",
-      ],
+      userDataDir: profileDir,
+      chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
     });
 
     const results = [];

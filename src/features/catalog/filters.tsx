@@ -105,7 +105,7 @@ function PriceFilter({
     <fieldset className="flex flex-col gap-3">
       <legend className="mb-3 text-lg font-bold leading-4 text-foreground">Faixa de preço</legend>
       <div className="flex flex-col gap-3 pl-3">
-        <div className="relative h-[21px] w-full">
+        <div className="relative h-8 w-full">
           <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-border-soft" />
           <div
             className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-primary"

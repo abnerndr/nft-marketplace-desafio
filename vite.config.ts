@@ -9,4 +9,16 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   server: { port: 5173 },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // MSW fica no chunk dinâmico de `import("@/mocks/browser")` — não forçar manual chunk
+          // (download sequencial index→mocks atrasava o LCP no mobile).
+          if (id.includes("node_modules/@tanstack")) return "tanstack";
+          return undefined;
+        },
+      },
+    },
+  },
 });

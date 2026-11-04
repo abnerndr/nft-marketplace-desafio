@@ -1,5 +1,14 @@
-import { PaymentPage } from "@/features/checkout/payment-page";
+import { lazy } from "react";
+import { LazyRoute } from "@/app/lazy-route";
+
+const PaymentPage = lazy(() =>
+  import("@/features/checkout/payment-page").then((mod) => ({ default: mod.PaymentPage })),
+);
 
 export function CheckoutRoute() {
-  return <PaymentPage />;
+  return (
+    <LazyRoute>
+      <PaymentPage />
+    </LazyRoute>
+  );
 }

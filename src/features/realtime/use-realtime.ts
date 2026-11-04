@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { readSessionToken, useSession } from "@/features/auth/session";
+import { waitForMocks } from "@/mocks/ready";
 import { dropPrivateCache, shouldDropPrivateCache } from "./private-cache";
 import { connectRealtime } from "./socket";
 
@@ -14,16 +15,27 @@ export function useRealtime(): void {
   const client = useQueryClient();
   const session = useSession();
   const userId = session.data?.id;
+  const [mocksReady, setMocksReady] = useState(false);
 
   useEffect(() => {
-    if (session.isPending) return;
+    let cancelled = false;
+    void waitForMocks().then(() => {
+      if (!cancelled) setMocksReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mocksReady || session.isPending) return;
     if (userId) {
       const token = readSessionToken();
       if (!token) return;
       return connectRealtime({ token, userId, client });
     }
     if (session.isSuccess) return connectRealtime({ client });
-  }, [client, session.isPending, session.isSuccess, userId]);
+  }, [client, mocksReady, session.isPending, session.isSuccess, userId]);
 
   const previous = useRef<string | undefined>(undefined);
   useEffect(() => {

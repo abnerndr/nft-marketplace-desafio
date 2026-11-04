@@ -509,14 +509,29 @@ function DetailSkeleton() {
       data-testid="nft-detail-skeleton"
       role="status"
       aria-label="Carregando NFT"
-      className="flex flex-col gap-8 pt-6 lg:flex-row"
+      className="flex min-h-[1600px] flex-col gap-12 pb-[220px] pt-4 lg:min-h-[1700px] lg:gap-24 lg:pb-12 lg:pt-6"
     >
-      <div className="skeleton h-[356px] w-full rounded-[24px] lg:h-[448px] lg:w-[573px]" />
-      <div className="flex flex-1 flex-col gap-4">
-        <div className="skeleton h-8 w-2/3 rounded" />
-        <div className="skeleton h-5 w-1/3 rounded" />
-        <div className="skeleton h-24 w-full rounded" />
-        <div className="skeleton h-10 w-1/2 rounded" />
+      <div className="flex flex-col gap-8 lg:flex-row">
+        <div className="skeleton h-[356px] w-full shrink-0 rounded-[24px] lg:h-[448px] lg:w-[573px]" />
+        <div className="flex flex-1 flex-col gap-4 rounded-t-[31px] bg-surface-card px-6 pb-6 pt-8 lg:rounded-none lg:bg-transparent lg:p-0">
+          <div className="skeleton h-8 w-2/3 rounded" />
+          <div className="skeleton h-5 w-1/3 rounded" />
+          <div className="skeleton h-24 w-full rounded" />
+          <div className="skeleton h-14 w-full rounded" />
+          <div className="skeleton h-20 w-full rounded" />
+        </div>
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="skeleton h-5 w-40 rounded" />
+        <div className="skeleton h-32 w-full rounded" />
+      </div>
+      <div className="flex flex-col gap-6">
+        <div className="skeleton h-5 w-48 rounded" />
+        <div className="flex gap-6 overflow-hidden">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div key={index} className="skeleton h-[256px] w-[180px] shrink-0 rounded-[20px] sm:h-[356px] sm:w-[258px]" />
+          ))}
+        </div>
       </div>
     </div>
   );

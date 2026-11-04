@@ -17,6 +17,8 @@ playwright-report
 test-results
 reports
 *.tsbuildinfo
+# Perfis temporários do Chrome/Lighthouse que o WSL às vezes materializa no cwd
+**/kurio-lighthouse-*/
 
 # Editor directories and files
 .vscode/*

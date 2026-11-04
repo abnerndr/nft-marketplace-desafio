@@ -19,6 +19,14 @@ const input: PlaceOrderInput = {
   couponCode: null,
   lines: [],
   reviewed,
+  collector: {
+    displayName: "Marina Alves",
+    username: "marina",
+    profileName: "Marina",
+    email: "marina@kurio.test",
+    referralCode: "KURIO",
+    ensName: "marina",
+  },
 };
 
 const placed = {
@@ -52,7 +60,12 @@ describe("submitPlaceOrder / recoverOrderAttempt", () => {
 
   it("resposta tardia não devolve pedido colocado nem apaga a tentativa guardada", async () => {
     vi.stubGlobal("sessionStorage", memoryStorage());
-    const body = JSON.stringify({ walletId: input.walletId, couponCode: input.couponCode, quoteVersion: reviewed.version });
+    const body = JSON.stringify({
+      walletId: input.walletId,
+      couponCode: input.couponCode,
+      quoteVersion: reviewed.version,
+      collector: input.collector,
+    });
     setSessionIdentity("user-marina");
     const stored = resolveOrderAttempt("user-marina", body);
     const attempt = { current: stored };

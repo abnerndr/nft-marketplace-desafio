@@ -107,6 +107,9 @@ function Hero() {
           <img
             src={heroArt}
             alt="Macaco de óculos e jaqueta verde, arte em destaque"
+            width={450}
+            height={450}
+            decoding="async"
             className="size-full rounded-2xl object-cover lg:rounded-3xl"
           />
           <img
@@ -328,11 +331,11 @@ function Catalog() {
   }
 
   return (
-    <section
-      id="catalogo"
-      aria-label="Catálogo de NFTs"
-      className="flex scroll-mt-6 flex-col gap-6 lg:flex-row lg:gap-12"
-    >
+    <section id="catalogo" aria-labelledby="catalogo-titulo" className="scroll-mt-6">
+      <h2 id="catalogo-titulo" className="sr-only">
+        Catálogo de NFTs
+      </h2>
+      <div className="flex flex-col gap-6 lg:flex-row lg:gap-12">
       <aside className="flex flex-col gap-6 lg:w-[310px] lg:shrink-0">
         <Button
           type="button"
@@ -386,6 +389,7 @@ function Catalog() {
         >
           {content}
         </div>
+      </div>
       </div>
     </section>
   );
