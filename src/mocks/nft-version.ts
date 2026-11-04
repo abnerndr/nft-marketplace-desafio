@@ -1,4 +1,4 @@
-import { mulEth } from "@/shared/domain/money";
+import { mulEthRate } from "@/shared/domain/money";
 import { getDatabase, saveDatabase } from "./db";
 
 /** Versão atual do preço de um NFT. Sem mudança registrada vale 1. */
@@ -6,9 +6,9 @@ export function nftVersionOf(slug: string): number {
   return getDatabase().nfts.find((nft) => nft.slug === slug)?.priceVersion ?? 1;
 }
 
-/** +10% no preço, mantendo as casas decimais do preço atual. */
+/** +10% no preço com precisão decimal (sem arredondar à escala da entrada). */
 export function raisedPrice(priceEth: string): string {
-  return mulEth(priceEth, 1.1);
+  return mulEthRate(priceEth, "1.1");
 }
 
 export type PriceChange = { slug: string; priceEth: string; version: number };

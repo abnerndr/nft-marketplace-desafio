@@ -9,8 +9,8 @@ describe("versão de preço do mock", () => {
   });
 
   it("sobe 10% mantendo as casas decimais", () => {
-    expect(raisedPrice("1.19")).toBe("1.31");
-    expect(raisedPrice("0.39")).toBe("0.43");
+    expect(raisedPrice("1.19")).toBe("1.309");
+    expect(raisedPrice("0.39")).toBe("0.429");
   });
 
   it("grava preço e versão e ignora versão igual ou antiga", () => {

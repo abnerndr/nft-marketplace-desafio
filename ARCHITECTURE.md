@@ -33,7 +33,10 @@ servidor que se desvie do contrato quebra alto e cedo, não na renderização.
 Regras que valem para o cliente e para o mock:
 
 - **Dinheiro é string decimal** (`"1.19"`), nunca `number`. A conta passa por `decimal.js` em
-  `shared/domain/money.ts` (`addEth`, `subEth`, `mulEth`). Evita `0.1 + 0.2`.
+  `shared/domain/money.ts` (`addEth`, `subEth`, `mulEth`, `mulEthRate`, `formatEth`). Quantidades
+  são inteiras (`mulEth`); taxas/percentuais usam `mulEthRate` sem arredondar à escala da entrada.
+  Transporte limita-se a 18 casas decimais (valores além disso são rejeitados). `formatEth`
+  apresenta a escala completa, sem notação exponencial. Evita `0.1 + 0.2` e `Number` em ETH.
 - **O preço vem do servidor.** O cliente manda `slug`, `editionId` e `quantity`; subtotal, desconto, taxa e total
   são calculados no servidor (`POST /api/quote`).
 - **Erros** passam por `readApiError` (`shared/api/errors.ts`): lê `error.response.data.error` com o schema

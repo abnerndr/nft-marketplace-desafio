@@ -91,13 +91,13 @@ test.describe("carrinho: quantidades, remoção, cupom e persistência", () => {
     await input.fill(COUPONS.valid.toLowerCase());
     await apply.click();
     await expect(page.getByText(`Cupom ${COUPONS.valid} aplicado.`)).toBeVisible();
-    await expect(value(page, "Desconto do lançamento")).toHaveText("(-) 0.41 ETH");
-    await expect(value(page, "Total")).toHaveText("3.68 ETH");
+    await expect(value(page, "Desconto do lançamento")).toHaveText("(-) 0.407 ETH");
+    await expect(value(page, "Total")).toHaveText("3.683 ETH");
 
     await input.fill(COUPONS.other);
     await apply.click();
     await expect(page.getByText(`Cupom ${COUPONS.other} aplicado.`)).toBeVisible();
-    await expect(value(page, "Desconto do lançamento")).toHaveText("(-) 0.2 ETH");
+    await expect(value(page, "Desconto do lançamento")).toHaveText("(-) 0.2035 ETH");
 
     await page.getByRole("button", { name: "Remover cupom" }).click();
     await expect(page.getByText(/Cupom .* aplicado\./)).toHaveCount(0);

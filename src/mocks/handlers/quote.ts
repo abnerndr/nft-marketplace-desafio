@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import type { Quote } from "@/shared/domain/contracts";
-import { addEth, mulEth, subEth } from "@/shared/domain/money";
+import { addEth, mulEth, mulEthRate, subEth } from "@/shared/domain/money";
 import { getScenario } from "../scenarios";
 import { findNftBySlug } from "./nfts";
 
@@ -105,7 +105,7 @@ export function quoteFor(items: QuoteItem[], couponCode: string, revision?: numb
 
   const changed = getScenario() === "price-changed" && revision !== undefined && revision >= 1;
   const networkFeeEth = changed ? CHANGED_NETWORK_FEE_ETH : NETWORK_FEE_ETH;
-  const discountEth = mulEth(subtotalEth, Number(rate));
+  const discountEth = mulEthRate(subtotalEth, rate);
   return {
     ok: true,
     quote: {

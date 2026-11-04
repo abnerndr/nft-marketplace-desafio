@@ -46,15 +46,15 @@ describe("POST /api/quote", () => {
     expect(response.status).toBe(200);
     const parsed = quoteSchema.parse(await response.json());
     expect(parsed.subtotalEth).toBe("2.38");
-    expect(parsed.discountEth).toBe("0.00");
+    expect(parsed.discountEth).toBe("0");
     expect(parsed.networkFeeEth).toBe("0.02");
     expect(parsed.totalEth).toBe("2.40");
   });
 
   it("aplica o desconto sobre o subtotal", async () => {
     const parsed = quoteSchema.parse(await (await quote({ items, couponCode: "genesis10" })).json());
-    expect(parsed.discountEth).toBe("0.24");
-    expect(parsed.totalEth).toBe("2.16");
+    expect(parsed.discountEth).toBe("0.238");
+    expect(parsed.totalEth).toBe("2.162");
   });
 
   it("responde 422 com erro no campo para cupom expirado ou inválido, sem desconto", async () => {

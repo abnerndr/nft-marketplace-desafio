@@ -94,15 +94,15 @@ test.describe("compra completa: do catálogo ao recibo confirmado", () => {
     await page.getByRole("link", { name: "Conectar e finalizar" }).click();
     await expect(page).toHaveURL(/\/checkout$/);
     await kurio.connectWallet("Carteira principal");
-    // 2 x 1.19 = 2.38; desconto 0.24; taxa 0.02; total 2.16.
-    await expect(summary(page).getByText("2.16 ETH")).toBeVisible();
+    // 2 x 1.19 = 2.38; desconto 0.238; taxa 0.02; total 2.162.
+    await expect(summary(page).getByText("2.162 ETH")).toBeVisible();
     await page.getByRole("button", { name: "Confirmar compra" }).click();
 
     await expect(page.getByRole("heading", { name: "Seus NFTs agora estão na sua carteira" })).toBeVisible();
     const receipt = page.getByRole("article");
     await expect(receipt.getByText("Desconto (GENESIS10)")).toBeVisible();
-    await expect(receipt.getByText("(-) 0.24 ETH")).toBeVisible();
-    await expect(receipt.getByText("2.16 ETH").first()).toBeVisible();
+    await expect(receipt.getByText("(-) 0.238 ETH")).toBeVisible();
+    await expect(receipt.getByText("2.162 ETH").first()).toBeVisible();
   });
 
   test("pagamento sem login cai na tela de entrada e volta ao pagamento", async ({ kurio, page }) => {
