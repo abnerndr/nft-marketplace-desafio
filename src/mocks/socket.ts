@@ -92,7 +92,13 @@ export function priceChangeForGuestCart(): NftUpdatedEvent | null {
   return priceEventForSlug(first.slug);
 }
 
-const scheduled = new Set<string>();
+const scheduled = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Abandona timers de `price-changed` ainda não disparados (reset integral). */
+export function clearPriceSchedules(): void {
+  for (const timer of scheduled.values()) clearTimeout(timer);
+  scheduled.clear();
+}
 
 /**
  * Cenário `price-changed`: depois de um atraso, muda o preço do primeiro item do carrinho e
@@ -102,9 +108,8 @@ const scheduled = new Set<string>();
 export function schedulePriceChange(userId: string): void {
   if (getScenario() !== "price-changed" || scheduled.has(userId)) return;
   if (getDatabase().priceChangedFor?.includes(userId)) return;
-  scheduled.add(userId);
 
-  setTimeout(() => {
+  const timer = setTimeout(() => {
     scheduled.delete(userId);
     const db = getDatabase();
     const connected = hasPeer(userId);
@@ -116,6 +121,7 @@ export function schedulePriceChange(userId: string): void {
     saveDatabase();
     send("nft.updated", event, userId);
   }, PRICE_CHANGE_DELAY_MS);
+  scheduled.set(userId, timer);
 }
 
 /** Avisa o dono do pedido que o estado mudou. Pedido não tem versão própria: pendente é 1, final é 2. */

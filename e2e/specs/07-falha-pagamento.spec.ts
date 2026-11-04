@@ -65,9 +65,9 @@ test.describe("falha de pagamento, clique repetido e timeout", () => {
 
     await confirm.click();
     await expect(page.getByRole("button", { name: "Confirmando…" })).toBeDisabled();
-    // O servidor grava o pedido e só a resposta se perde (8 s do cenário).
+    // O servidor grava o pedido e só a resposta se perde (delay curto no SW do MSW).
     const failure = page.getByRole("alert").filter({ hasText: "Sem resposta do servidor" });
-    await expect(failure).toBeVisible({ timeout: 20_000 });
+    await expect(failure).toBeVisible({ timeout: 5_000 });
     await expect(failure).toContainText("o pedido não será cobrado duas vezes");
     expect((await kurio.db()).orders).toHaveLength(1);
     const pendingId = (await kurio.db()).orders[0].id;
@@ -95,7 +95,7 @@ test.describe("falha de pagamento, clique repetido e timeout", () => {
     const confirm = page.getByRole("button", { name: "Confirmar compra" });
     await confirm.click();
     await expect(page.getByRole("alert").filter({ hasText: "Sem resposta do servidor" })).toBeVisible({
-      timeout: 20_000,
+      timeout: 5_000,
     });
     const before = await kurio.db();
     expect(before.orders).toHaveLength(1);

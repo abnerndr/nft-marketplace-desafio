@@ -13,7 +13,10 @@ e só se `VITE_ENABLE_MOCKS !== "false"`. `VITE_DEFAULT_SCENARIO` define o cená
 
 ## Console
 
-`window.__kurio` expõe `reset()`, `setScenario(id)` e `emit(type, payload)`.
+`window.__kurio` expõe `reset()`, `setScenario(id)`, `switchScenario(id)`, `emit(type, payload)`,
+`disconnectSocket()` e `reconnectSocket()`.
+`reset()` limpa só chaves `kurio.*`, cancela timers de preço, fecha peers e recria o seed.
+`setScenario` troca o cenário e volta ao seed; `switchScenario` só troca o cenário (sessão/carrinho/pedidos permanecem).
 `emit` dispara um `CustomEvent` `kurio:mock` em `window` com `detail: { type, payload }` e também
 empurra o evento pelo transporte Socket.IO mock (veja abaixo). `emit("nft.updated")` sem `payload`
 sobe 10% no preço do primeiro item do carrinho de cada usuário conectado e, se houver visitante
@@ -58,13 +61,16 @@ No cenário `price-changed`, 1,5 s depois de o usuário conectado ter um item no
 | `offline` | Toda chamada `/api/*` falha na rede (`HttpResponse.error()`). | ativo |
 | `server-error` | 503 nas duas primeiras leituras de `/api/nfts` (lista), com contador próprio para `/api/nfts/:id`. Veja `shouldFailTransient`. O handler de lista está ativo; o de detalhe ainda não existe. | ativo (lista) |
 | `session-expired` | Sessão deixa de valer no meio do fluxo. | registrado, muda nas tasks de auth |
-| `validation-conflict` | Servidor devolve erro de validação por campo. | registrado |
-| `coupon-invalid` | Cupom é recusado. | registrado, muda nas tasks de carrinho |
+| `validation-conflict` | `PATCH /profile` devolve 422 com erros por campo. | ativo |
+| `coupon-invalid` | Qualquer cupom em `/quote` ou `/cart/coupon` responde 422. | ativo |
+| `forbidden` | `PATCH /profile` responde 403. | ativo |
+| `stock-changed` | `POST /quote` com itens responde 409 com conflitos. | ativo |
+| `socket-disconnect` | Marcador; use `window.__kurio.disconnectSocket()` para derrubar o WS. | ativo |
 | `price-changed` | Preço muda entre cotação e confirmação: a cotação com revisão devolve a versão 2 e taxa 0,03 ETH, e o primeiro item do carrinho sobe 10% por `nft.updated` no Socket.IO. | ativo |
 | `edition-sold-out` | Edição esgota antes do pagamento. | registrado |
-| `order-timeout` | Pedido fica pendente até estourar o tempo. | registrado |
+| `order-timeout` | Primeira `POST /orders` grava `pending`, espera um delay curto e falha na rede; retry com a mesma chave devolve o pedido. | ativo |
 | `payment-confirmed` | Pagamento é confirmado. | registrado |
-| `payment-declined` | Pagamento é recusado. | registrado |
+| `payment-declined` | Pagamento é recusado. | ativo |
 
 Os cenários "registrados" já existem em `SCENARIO_IDS` e são aceitos por `?scenario=`. O comportamento
 entra nas tasks que criam os handlers correspondentes.

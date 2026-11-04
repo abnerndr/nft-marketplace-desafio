@@ -25,9 +25,6 @@ export const SEED = {
   networkFee: "0.02",
 } as const;
 
-/** Módulo de cenários servido pelo `vite dev`: o mesmo que o app já carregou na página. */
-const SCENARIOS_MODULE = "/src/mocks/scenarios.ts";
-
 type StoredDb = {
   orders: { id: string; status: string }[];
   carts: Record<string, { items: { slug: string; quantity: number }[]; couponCode: string | null }>;
@@ -39,7 +36,10 @@ type StoredDb = {
 type Controls = {
   reset: () => void;
   setScenario: (id: string) => void;
+  switchScenario: (id: string) => void;
   emit: (type: string, payload?: unknown) => void;
+  disconnectSocket?: () => void;
+  reconnectSocket?: () => void;
 };
 
 /** `window.__kurio` e `localStorage` existem na página; o teste só chama o que o app expõe. */
@@ -91,18 +91,11 @@ export class Kurio {
   }
 
   /**
-   * Troca o cenário sem tocar no banco (sessão, carrinho e pedidos continuam). `__kurio.setScenario`
-   * regrava o seed, o que derrubaria a sessão no meio do fluxo; este usa o mesmo módulo de cenários
-   * que o app já carregou no `vite dev`.
+   * Troca o cenário sem tocar no banco (sessão, carrinho e pedidos continuam).
+   * Usa `window.__kurio.switchScenario` — sem importar `/src/...` (funciona no preview/build).
    */
   async switchScenario(id: ScenarioId): Promise<void> {
-    await this.page.evaluate(
-      async ([scenario, module]) => {
-        const mod = (await import(/* @vite-ignore */ module)) as { applyScenario: (next: string) => void };
-        mod.applyScenario(scenario);
-      },
-      [id, SCENARIOS_MODULE] as const,
-    );
+    await this.page.evaluate((scenario) => window.__kurio!.switchScenario(scenario), id);
   }
 
   /** Dispara um evento Socket.IO pelo transporte do mock. */

@@ -11,7 +11,7 @@ import { quoteFor, quoteHandlers } from "./quote";
 import { walletHandlers } from "./wallets";
 
 vi.stubGlobal("location", new URL("http://kurio.test/"));
-// A espera real é de 8 s; o teste só precisa de uma espera curta antes do erro de rede.
+// A espera real do cenário é curta; o teste força ainda mais curta antes do erro de rede.
 vi.mock("../scenarios", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../scenarios")>()),
   ORDER_TIMEOUT_DELAY_MS: 30,

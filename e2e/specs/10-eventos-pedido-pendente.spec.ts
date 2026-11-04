@@ -27,7 +27,7 @@ async function placePendingOrder(kurio: Kurio, page: Page): Promise<string> {
   await kurio.switchScenario("order-timeout");
   const confirm = page.getByRole("button", { name: "Confirmar compra" });
   await confirm.click();
-  await expect(page.getByRole("alert").filter({ hasText: "Sem resposta do servidor" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("alert").filter({ hasText: "Sem resposta do servidor" })).toBeVisible({ timeout: 5_000 });
   // Rede lenta alarga a janela em que o pedido fica pendente: o servidor só o confirma na segunda leitura.
   await kurio.switchScenario("slow-network");
   await confirm.click();

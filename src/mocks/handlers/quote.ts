@@ -191,6 +191,21 @@ export const quoteHandlers = [
 
     const couponCode = typeof body.couponCode === "string" ? body.couponCode : "";
     const revision = typeof body.revision === "number" ? body.revision : undefined;
+    if (getScenario() === "coupon-invalid" && couponCode.trim() !== "") {
+      return errorResponse(422, "coupon_invalid", "Cupom inválido.", { couponCode: "Cupom inválido." });
+    }
+    if (getScenario() === "stock-changed" && parsedItems.items.length > 0) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: "edition_sold_out",
+            message: "Saldo insuficiente para a cotação.",
+            conflicts: parsedItems.items.map((item) => ({ ...item, available: 0 })),
+          },
+        },
+        { status: 409 },
+      );
+    }
     const result = quoteFor(parsedItems.items, couponCode, revision);
     if (!result.ok) {
       return errorResponse(result.status, result.code, result.message, { couponCode: result.message });

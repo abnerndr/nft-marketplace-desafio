@@ -87,7 +87,7 @@ Todas partem de `?reset=1&scenario=<id>`, por exemplo `http://localhost:5173/?re
 | Preço mudou antes de pagar | `price-changed` | Entre, adicione um item e abra `/cart`. Em 1,5 s chega `nft.updated` (+10%) com aviso de preço. No checkout, a cotação revista vem com taxa de 0,03 ETH e outra `version`. O mesmo evento sai do painel de cenários. Visitante também recebe `nft.updated` público. |
 | Edição esgotou | `edition-sold-out` | Entre, adicione item, conecte carteira e confirme o pagamento. Resposta 409 `edition_sold_out`. |
 | Pagamento recusado | `payment-declined` | Mesmo fluxo; o pedido fica `declined` na tela de confirmação. |
-| Pedido pendente e timeout | `order-timeout` | Mesmo fluxo. O pedido é gravado como `pending`, a resposta se perde após 8 s e o retry reaproveita a `Idempotency-Key`. Na segunda leitura do pedido ele confirma e `order.updated` chega pelo socket. |
+| Pedido pendente e timeout | `order-timeout` | Mesmo fluxo. O pedido é gravado como `pending`, a resposta se perde após um delay curto e o retry reaproveita a `Idempotency-Key`. Na segunda leitura do pedido ele confirma e `order.updated` chega pelo socket. |
 | Pagamento confirmado | `payment-confirmed` ou `default` | Mesmo fluxo; pedido `confirmed` com `txRef`. |
 | Conflito de validação | `validation-conflict` | Id aceito, mas sem comportamento próprio. Erros por campo (`fields`) saem de e-mail repetido no cadastro, carteira desconectada e senha atual errada. |
 

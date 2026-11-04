@@ -8,6 +8,9 @@ export const SCENARIO_IDS = [
   "session-expired",
   "validation-conflict",
   "coupon-invalid",
+  "forbidden",
+  "stock-changed",
+  "socket-disconnect",
   "price-changed",
   "edition-sold-out",
   "order-timeout",
@@ -19,8 +22,11 @@ export type ScenarioId = (typeof SCENARIO_IDS)[number];
 
 export const SLOW_NETWORK_DELAY_MS = 1200;
 export const TRANSIENT_FAILURES = 2;
-/** Espera da primeira `POST /api/orders` no cenário `order-timeout`, antes do erro de rede. */
-export const ORDER_TIMEOUT_DELAY_MS = 8000;
+/**
+ * Espera da primeira `POST /api/orders` no cenário `order-timeout`, antes do erro de rede.
+ * Curto de propósito: o `delay` do MSW roda no Service Worker, fora do `page.clock` do Playwright.
+ */
+export const ORDER_TIMEOUT_DELAY_MS = 250;
 /** Esperas das buscas no cenário `out-of-order`: cada uma é mais curta que a anterior. */
 export const OUT_OF_ORDER_DELAYS_MS = [900, 400, 50] as const;
 

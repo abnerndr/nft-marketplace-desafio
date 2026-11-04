@@ -1,14 +1,16 @@
 import { setupWorker } from "msw/browser";
-import { initMockState, resetDatabase, setScenario } from "./db";
+import { initMockState, resetDatabase, setScenario, switchScenario } from "./db";
 import { handlers } from "./handlers";
 import { isScenarioId, type ScenarioId } from "./scenarios";
-import { disconnectSocket, emitSocketEvent, reconnectSocket, socketHandlers } from "./socket";
+import { clearPriceSchedules, disconnectSocket, emitSocketEvent, reconnectSocket, socketHandlers } from "./socket";
 
 export const worker = setupWorker(...handlers, ...socketHandlers);
 
 export type KurioMockControls = {
   reset: () => void;
   setScenario: (id: ScenarioId) => void;
+  /** Troca o cenário sem resetar o seed (falhas no meio do fluxo). */
+  switchScenario: (id: ScenarioId) => void;
   emit: (type: string, payload?: unknown) => void;
   disconnectSocket: () => void;
   reconnectSocket: () => void;
@@ -29,10 +31,18 @@ export async function enableMocks(): Promise<void> {
   initMockState(window.location.search, isScenarioId(envScenario) ? envScenario : "default");
 
   window.__kurio = {
-    reset: resetDatabase,
+    reset: () => {
+      clearPriceSchedules();
+      disconnectSocket();
+      resetDatabase();
+    },
     setScenario: (id) => {
       if (!isScenarioId(id)) throw new Error(`Cenário desconhecido: ${String(id)}`);
       setScenario(id);
+    },
+    switchScenario: (id) => {
+      if (!isScenarioId(id)) throw new Error(`Cenário desconhecido: ${String(id)}`);
+      switchScenario(id);
     },
     emit: (type, payload) => {
       window.dispatchEvent(new CustomEvent(MOCK_EVENT, { detail: { type, payload } }));

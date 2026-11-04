@@ -102,7 +102,7 @@ function parseBody(raw: string): OrderBody {
 /**
  * `POST /api/orders` exige `Idempotency-Key`. A mesma chave com o mesmo corpo devolve o pedido já
  * criado; com corpo diferente responde 409 `idempotency_conflict`. O carrinho vem do servidor, o preço vem do catálogo.
- * Cenários: `payment-declined` grava `declined`; `order-timeout` grava `pending`, espera 8 s e
+ * Cenários: `payment-declined` grava `declined`; `order-timeout` grava `pending`, espera o delay e
  * falha na rede; `edition-sold-out` esgota a edição; os demais gravam `confirmed`.
  */
 export const orderHandlers = [

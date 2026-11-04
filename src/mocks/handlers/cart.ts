@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import type { CartLine } from "@/shared/domain/contracts";
 import { getDatabase, saveDatabase } from "../db";
 import { availableOf, validateInventory } from "../inventory";
+import { getScenario } from "../scenarios";
 import { schedulePriceChange } from "../socket";
 import { userFromRequest } from "./auth";
 import { editionsOf, findNftBySlug, tokenIdOf } from "./nfts";
@@ -259,6 +260,9 @@ export const cartHandlers = [
       return errorResponse(422, "validation", "Cupom inválido.", { couponCode: "Cupom inválido." });
     }
 
+    if (getScenario() === "coupon-invalid") {
+      return errorResponse(422, "coupon_invalid", "Cupom inválido.", { couponCode: "Cupom inválido." });
+    }
     const result = applyCoupon(couponCode);
     if (!result.ok) {
       const expired = result.reason === "expired";

@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { MAX_AVATAR_BYTES, MIN_PASSWORD_LENGTH, type Profile } from "@/features/profile/types";
 import { getDatabase, saveDatabase } from "../db";
+import { getScenario } from "../scenarios";
 import type { UserRecord } from "../seed";
 import { sha256Hex, userFromRequest } from "./auth";
 
@@ -76,6 +77,12 @@ export const profileHandlers = [
   http.patch("/api/profile", async ({ request }) => {
     const user = userFromRequest(request);
     if (!user) return unauthorized();
+    if (getScenario() === "validation-conflict") {
+      return validationError({ name: "Nome em conflito com outro colecionador.", email: "E-mail já em uso neste cenário." });
+    }
+    if (getScenario() === "forbidden") {
+      return errorResponse(403, "forbidden", "Você não tem permissão para alterar este perfil.");
+    }
 
     const body = await readBody(request);
     const db = getDatabase();

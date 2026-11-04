@@ -1,3 +1,4 @@
+import { fullKurioReset } from "./reset";
 import { applyScenario, getScenario, isScenarioId, type ScenarioId } from "./scenarios";
 import { createSeed, type Database } from "./seed";
 
@@ -62,10 +63,23 @@ export function saveDatabase(): void {
   persist();
 }
 
-/** Volta ao seed do cenário atual e regrava o localStorage. */
+/** Volta ao seed do cenário atual e limpa todas as chaves `kurio.*`. */
 export function resetDatabase(): void {
-  database = seedForScenario();
-  applyScenario(getScenario());
+  fullKurioReset({
+    setDatabase: (db) => {
+      database = db;
+    },
+    persist: (db) => {
+      database = db;
+      persist();
+    },
+    scenario: getScenario(),
+  });
+}
+
+/** Troca o cenário sem recriar o banco (sessão/carrinho/pedidos permanecem). */
+export function switchScenario(id: ScenarioId): void {
+  applyScenario(id);
   persist();
 }
 
