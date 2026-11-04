@@ -1,14 +1,20 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CancelledError, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useSession } from "@/features/auth/session";
+import {
+  captureSessionIdentity,
+  isCurrentSession,
+  privateQueryKey,
+  type SessionIdentity,
+} from "@/features/auth/session-identity";
 import { isUnauthorized } from "@/features/nft/api";
 import { api } from "@/shared/api/client";
 
 const favoritesResponseSchema = z.object({ favorites: z.array(z.string()) });
 
-export function favoritesKey(userId: string | undefined) {
-  return ["favorites", userId] as const;
+export function favoritesKey(userId: string) {
+  return privateQueryKey(userId, "favorites");
 }
 
 /** Regra pura: remove o slug se já está na lista, senão o acrescenta ao fim. */
@@ -16,16 +22,26 @@ export function toggleFavoriteList(ids: string[], slug: string): string[] {
   return ids.includes(slug) ? ids.filter((id) => id !== slug) : [...ids, slug];
 }
 
-async function fetchFavorites(signal?: AbortSignal): Promise<string[]> {
+async function fetchFavorites(signal: AbortSignal): Promise<string[]> {
+  const identity = captureSessionIdentity();
   const { data } = await api.get("/favorites", { signal });
+  if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
   return favoritesResponseSchema.parse(data).favorites;
 }
 
 async function persistFavorite({ slug, favorite }: { slug: string; favorite: boolean }): Promise<string[]> {
+  const identity = captureSessionIdentity();
   const path = `/favorites/${encodeURIComponent(slug)}`;
   const { data } = favorite ? await api.put(path) : await api.delete(path);
+  if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
   return favoritesResponseSchema.parse(data).favorites;
 }
+
+type FavoriteContext = {
+  identity: SessionIdentity;
+  key: readonly unknown[];
+  snapshot: string[] | undefined;
+};
 
 /** Favoritos do usuário logado e a ação de alternar um NFT, com atualização otimista. */
 export function useFavorite(slug: string) {
@@ -34,7 +50,7 @@ export function useFavorite(slug: string) {
   const location = useLocation();
   const session = useSession();
   const userId = session.data?.id;
-  const key = favoritesKey(userId);
+  const key = userId ? favoritesKey(userId) : (["favorites", "anonymous"] as const);
 
   const list = useQuery({
     queryKey: key,
@@ -44,19 +60,26 @@ export function useFavorite(slug: string) {
 
   const mutation = useMutation({
     mutationFn: persistFavorite,
-    onMutate: async ({ slug: target }) => {
-      await client.cancelQueries({ queryKey: key });
-      const snapshot = client.getQueryData<string[]>(key);
-      client.setQueryData<string[]>(key, toggleFavoriteList(snapshot ?? [], target));
-      return { snapshot };
+    onMutate: async ({ slug: target }): Promise<FavoriteContext> => {
+      const identity = captureSessionIdentity();
+      if (!identity.userId) return { identity, key, snapshot: undefined };
+      const scoped = favoritesKey(identity.userId);
+      await client.cancelQueries({ queryKey: scoped });
+      const snapshot = client.getQueryData<string[]>(scoped);
+      client.setQueryData<string[]>(scoped, toggleFavoriteList(snapshot ?? [], target));
+      return { snapshot, identity, key: scoped };
     },
     onError: (error, _variables, context) => {
-      client.setQueryData(key, context?.snapshot);
+      if (!context || !isCurrentSession(context.identity)) return;
+      client.setQueryData(context.key, context.snapshot);
       if (isUnauthorized(error)) {
         void navigate({ to: "/login", search: { redirect: location.href } });
       }
     },
-    onSettled: () => client.invalidateQueries({ queryKey: key }),
+    onSettled: (_data, _error, _variables, context) => {
+      if (!context || !isCurrentSession(context.identity)) return;
+      void client.invalidateQueries({ queryKey: context.key });
+    },
   });
 
   const isFavorite = list.data?.includes(slug) ?? false;

@@ -44,6 +44,7 @@ vi.mock("socket.io-client", () => {
   return { io: mocks.io, WebSocket: class {} };
 });
 
+import { privateQueryKey, setSessionIdentity } from "@/features/auth/session-identity";
 import { cartQueryKey } from "@/features/cart/api";
 import { orderQueryKey } from "@/features/orders/api";
 import { clearPriceNotices, getPriceNotices } from "./notices";
@@ -196,21 +197,21 @@ describe("connectRealtime", () => {
   });
 
   it("order.updated antigo não regride o status", () => {
-    client.setQueryData(orderQueryKey("order-1"), order("confirmed"));
+    client.setQueryData(orderQueryKey("user-marina", "order-1"), order("confirmed"));
     connectRealtime({ token: "tok", userId: "user-marina", client });
     const socket = sockets()[0];
     socket.receive("order.updated", { eventId: "o1", version: 1, resource: { id: "order-1", status: "pending", txRef: null } });
-    expect(client.getQueryData<Order>(orderQueryKey("order-1"))?.status).toBe("confirmed");
+    expect(client.getQueryData<Order>(orderQueryKey("user-marina", "order-1"))?.status).toBe("confirmed");
     // Estado final diferente na mesma versão também não troca o que já é final.
     socket.receive("order.updated", { eventId: "o2", version: 2, resource: { id: "order-1", status: "declined", txRef: null } });
-    expect(client.getQueryData<Order>(orderQueryKey("order-1"))?.status).toBe("confirmed");
+    expect(client.getQueryData<Order>(orderQueryKey("user-marina", "order-1"))?.status).toBe("confirmed");
   });
 
   it("order.updated mais novo atualiza o pedido pendente", () => {
-    client.setQueryData(orderQueryKey("order-1"), order("pending"));
+    client.setQueryData(orderQueryKey("user-marina", "order-1"), order("pending"));
     connectRealtime({ token: "tok", userId: "user-marina", client });
     sockets()[0].receive("order.updated", { eventId: "o1", version: 2, resource: { id: "order-1", status: "confirmed", txRef: "0xabc" } });
-    expect(client.getQueryData<Order>(orderQueryKey("order-1"))).toMatchObject({ status: "confirmed", txRef: "0xabc" });
+    expect(client.getQueryData<Order>(orderQueryKey("user-marina", "order-1"))).toMatchObject({ status: "confirmed", txRef: "0xabc" });
   });
 
   it("remove os listeners e fecha o socket no cleanup", () => {
@@ -227,6 +228,13 @@ describe("connectRealtime", () => {
     expect(socket.count("connect")).toBe(0);
     expect(socket.closed).toBe(true);
     socket.receive("nft.updated", nftEvent("late", 9, "9.99"));
+    expect(priceInList(client)?.priceEth).toBe("1.19");
+  });
+
+  it("não reaplica evento depois que a geração da sessão mudou", () => {
+    connectRealtime({ token: "tok", userId: "user-marina", client });
+    setSessionIdentity("user-rafael");
+    sockets()[0].receive("nft.updated", nftEvent("late", 9, "9.99"));
     expect(priceInList(client)?.priceEth).toBe("1.19");
   });
 });
@@ -249,22 +257,28 @@ describe("troca de usuário", () => {
     expect(shouldDropPrivateCache("user-marina", undefined)).toBe(true);
   });
 
-  it("descarta carrinho, cotação, pedidos, carteiras e favoritos da sessão anterior e mantém o catálogo", () => {
+  it("descarta dados privados e mantém catálogo, cotação pública e carrinho de visitante", () => {
     const cart: CartView = { items: [], couponCode: null };
-    client.setQueryData([...cartQueryKey, "server"], cart);
-    client.setQueryData(["quote", "checkout"], { version: 1 });
-    client.setQueryData(orderQueryKey("order-1"), order("confirmed"));
-    client.setQueryData(["wallets"], []);
-    client.setQueryData(["favorites", "user-marina"], ["emerald-ape-042"]);
+    const guest: CartLine[] = [];
+    client.setQueryData(privateQueryKey("user-marina", "cart", "server"), cart);
+    client.setQueryData([...cartQueryKey, "guest", "raw"], guest);
+    client.setQueryData(privateQueryKey("user-marina", "quote", "checkout"), { version: 1 });
+    client.setQueryData(["quote", "guest"], { version: 2 });
+    client.setQueryData(orderQueryKey("user-marina", "order-1"), order("confirmed"));
+    client.setQueryData(privateQueryKey("user-marina", "wallets"), []);
+    client.setQueryData(privateQueryKey("user-marina", "favorites"), ["emerald-ape-042"]);
     client.setQueryData(["session"], { id: "user-marina" });
 
     dropPrivateCache(client);
 
-    expect(client.getQueryData([...cartQueryKey, "server"])).toBeUndefined();
-    expect(client.getQueryData(["quote", "checkout"])).toBeUndefined();
-    expect(client.getQueryData(orderQueryKey("order-1"))).toBeUndefined();
-    expect(client.getQueryData(["wallets"])).toBeUndefined();
-    expect(client.getQueryData(["favorites", "user-marina"])).toBeUndefined();
+    expect(client.getQueryData(privateQueryKey("user-marina", "cart", "server"))).toBeUndefined();
+    expect(client.getQueryData([...cartQueryKey, "guest", "raw"])).toEqual(guest);
+    expect(client.getQueryData(privateQueryKey("user-marina", "quote", "checkout"))).toBeUndefined();
+    expect(client.getQueryData(["quote", "guest"])).toEqual({ version: 2 });
+    expect(client.getQueryData(orderQueryKey("user-marina", "order-1"))).toBeUndefined();
+    expect(client.getQueryData(privateQueryKey("user-marina", "wallets"))).toBeUndefined();
+    expect(client.getQueryData(privateQueryKey("user-marina", "favorites"))).toBeUndefined();
+    expect(client.getQueryData(["session"])).toEqual({ id: "user-marina" });
     expect(priceInList(client)).toBeDefined();
   });
 });

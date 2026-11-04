@@ -5,8 +5,9 @@ import { dropPrivateCache, shouldDropPrivateCache } from "./private-cache";
 import { connectRealtime } from "./socket";
 
 /**
- * Mantém um socket por sessão. O efeito fecha o socket anterior no cleanup, e a troca (ou
- * saída) de usuário limpa favoritos, carrinho, cotações, carteiras e pedidos da sessão anterior.
+ * Mantém um socket por sessão. O cleanup fecha o socket anterior. A troca (ou saída) cancela
+ * leituras `private` ainda em voo e apaga esse cache; o callback do socket antigo não regrava,
+ * porque a geração da sessão já mudou. Carrinho de visitante e catálogo permanecem.
  * Visitante também conecta, sem token, para receber `nft.updated` público.
  */
 export function useRealtime(): void {

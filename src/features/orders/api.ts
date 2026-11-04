@@ -1,8 +1,9 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CancelledError, queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useRef } from "react";
+import { useSession } from "@/features/auth/session";
+import { captureSessionIdentity, isCurrentSession, privateQueryKey } from "@/features/auth/session-identity";
 import { requestQuote, toQuoteItems } from "@/features/cart/quote";
-import { cartQueryKey } from "@/features/cart/api";
 import { api } from "@/shared/api/client";
 import { orderSchema, type CartLine, type Order, type Quote } from "@/shared/domain/contracts";
 import {
@@ -13,13 +14,15 @@ import {
   type OrderAttempt,
 } from "./idempotency";
 
-export const orderQueryKey = (id: string) => ["order", id] as const;
+export const orderQueryKey = (userId: string, id: string) => privateQueryKey(userId, "order", id);
 
-export function orderQuery(id: string) {
+export function orderQuery(userId: string, id: string) {
   return queryOptions({
-    queryKey: orderQueryKey(id),
-    queryFn: async () => {
-      const { data } = await api.get(`/orders/${encodeURIComponent(id)}`);
+    queryKey: orderQueryKey(userId, id),
+    queryFn: async ({ signal }) => {
+      const identity = captureSessionIdentity();
+      const { data } = await api.get(`/orders/${encodeURIComponent(id)}`, { signal });
+      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
       return orderSchema.parse(data);
     },
     // O Socket.IO traz `order.updated`; enquanto pendente, volta a perguntar ao servidor por garantia
@@ -29,7 +32,11 @@ export function orderQuery(id: string) {
 }
 
 export function useOrder(id: string) {
-  return useQuery(orderQuery(id));
+  const userId = useSession().data?.id;
+  return useQuery({
+    ...orderQuery(userId ?? "pending", id),
+    enabled: Boolean(userId),
+  });
 }
 
 export type PlaceOrderInput = {
@@ -68,12 +75,15 @@ export function usePlaceOrder() {
     mutationFn: async ({ walletId, couponCode, lines, reviewed }: PlaceOrderInput): Promise<PlaceOrderResult> => {
       const body = JSON.stringify({ walletId, couponCode, quoteVersion: reviewed.version });
 
+      const identity = captureSessionIdentity();
       if (!attempt.current || !sameOrderAttempt(attempt.current.body, body)) {
         const fresh = await requestQuote(toQuoteItems(lines), couponCode, undefined, reviewed.version);
+        if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
         if (fresh.version !== reviewed.version) return { kind: "changed", quote: fresh };
         attempt.current = resolveOrderAttempt(body);
       }
 
+      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
       try {
         const { data } = await api.post("/orders", body, {
           headers: { "Idempotency-Key": attempt.current.key, "Content-Type": "application/json" },
@@ -85,11 +95,12 @@ export function usePlaceOrder() {
         throw error;
       }
     },
-    onSuccess: (result) => {
-      if (result.kind !== "placed") return;
-      client.setQueryData(orderQueryKey(result.order.id), result.order);
+    onMutate: () => captureSessionIdentity(),
+    onSuccess: (result, _vars, identity) => {
+      if (!isCurrentSession(identity) || !identity.userId || result.kind !== "placed") return;
+      client.setQueryData(orderQueryKey(identity.userId, result.order.id), result.order);
       // Sem retornar a promessa: a navegação para o recibo não espera o carrinho recarregar.
-      void client.invalidateQueries({ queryKey: cartQueryKey });
+      void client.invalidateQueries({ queryKey: privateQueryKey(identity.userId, "cart") });
     },
   });
 }

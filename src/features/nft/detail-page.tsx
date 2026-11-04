@@ -24,6 +24,8 @@ import zoom from "@/assets/nft/zoom.svg";
 import { nftListQuery } from "@/features/catalog/api";
 import { NftCard } from "@/features/catalog/nft-card";
 import { toParams, type CollectionId } from "@/features/catalog/search";
+import { captureSessionIdentity, isCurrentSession, privateQueryKey } from "@/features/auth/session-identity";
+import { cartQueryKey } from "@/features/cart/api";
 import { useFavorite } from "@/features/favorites/use-favorite";
 import { readApiError } from "@/shared/api/errors";
 import type { Edition, NftDetail } from "@/shared/domain/contracts";
@@ -206,8 +208,14 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
 
   const add = useMutation({
     mutationFn: addToCart,
-    onSuccess: () => client.invalidateQueries({ queryKey: ["cart"] }),
-    onError: (error) => {
+    onMutate: () => captureSessionIdentity(),
+    onSuccess: (_item, _input, identity) => {
+      if (!isCurrentSession(identity)) return;
+      if (identity.userId) void client.invalidateQueries({ queryKey: privateQueryKey(identity.userId, "cart") });
+      void client.invalidateQueries({ queryKey: cartQueryKey });
+    },
+    onError: (error, _input, identity) => {
+      if (!identity || !isCurrentSession(identity)) return;
       if (isUnauthorized(error)) {
         void navigate({ to: "/login", search: { redirect: `/nfts/${nft.slug}` } });
       }

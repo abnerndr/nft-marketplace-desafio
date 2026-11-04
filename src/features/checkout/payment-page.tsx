@@ -11,8 +11,9 @@ import providerCircle from "@/assets/checkout/provider-circle.svg";
 import radioOff from "@/assets/checkout/radio-off-mobile.svg";
 import radioOn from "@/assets/checkout/radio-on-mobile.svg";
 import walletIcon from "@/assets/checkout/wallet.svg";
+import { useSession } from "@/features/auth/session";
 import { useCart } from "@/features/cart/api";
-import { quoteQueryKey, requestQuote, toQuoteItems } from "@/features/cart/quote";
+import { checkoutQuoteQuery } from "@/features/cart/quote";
 import { usePlaceOrder } from "@/features/orders/api";
 import { useAddWallet, useWalletAction, useWallets } from "@/features/wallets/api";
 import {
@@ -38,11 +39,10 @@ const primaryButton =
 
 /** Cotação do checkout: uma vez por carrinho, sem refetch automático, para a revisão não mudar sozinha. */
 function useCheckoutQuote(lines: CartLine[], couponCode: string | null) {
-  const items = toQuoteItems(lines);
+  const userId = useSession().data?.id;
   return useQuery({
-    queryKey: [...quoteQueryKey, "checkout", items, couponCode] as const,
-    queryFn: ({ signal }) => requestQuote(items, couponCode, signal),
-    enabled: lines.length > 0,
+    ...checkoutQuoteQuery(userId ?? "pending", lines, couponCode),
+    enabled: lines.length > 0 && Boolean(userId),
     staleTime: Infinity,
     gcTime: 0,
     refetchOnWindowFocus: false,

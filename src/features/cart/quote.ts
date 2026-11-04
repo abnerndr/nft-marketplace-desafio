@@ -1,4 +1,6 @@
-import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
+import { CancelledError, keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
+import { useSession } from "@/features/auth/session";
+import { captureSessionIdentity, isCurrentSession, privateQueryKey } from "@/features/auth/session-identity";
 import { api } from "@/shared/api/client";
 import { quoteSchema, type CartLine } from "@/shared/domain/contracts";
 
@@ -21,15 +23,39 @@ export async function requestQuote(
   return quoteSchema.parse(data);
 }
 
-/** Cotação do carrinho. Serve visitante e usuário logado: o corpo carrega os itens. */
-export function quoteQuery(lines: CartLine[], couponCode: string | null) {
+/** Cotação do carrinho. Visitante fica na chave pública; logado entra na chave privada da conta. */
+export function quoteQuery(lines: CartLine[], couponCode: string | null, userId: string | null = null) {
   const items = toQuoteItems(lines);
   return queryOptions({
-    queryKey: [...quoteQueryKey, items, couponCode] as const,
-    queryFn: ({ signal }) => requestQuote(items, couponCode, signal),
+    queryKey: userId ? privateQueryKey(userId, "quote", items, couponCode) : ([...quoteQueryKey, items, couponCode] as const),
+    queryFn: async ({ signal }) => {
+      const identity = captureSessionIdentity();
+      const quote = await requestQuote(items, couponCode, signal);
+      if (userId && !isCurrentSession(identity)) throw new CancelledError({ silent: true });
+      return quote;
+    },
+  });
+}
+
+export function checkoutQuoteQuery(userId: string, lines: CartLine[], couponCode: string | null) {
+  const items = toQuoteItems(lines);
+  return queryOptions({
+    queryKey: privateQueryKey(userId, "quote", "checkout", items, couponCode),
+    queryFn: async ({ signal }) => {
+      const identity = captureSessionIdentity();
+      const quote = await requestQuote(items, couponCode, signal);
+      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
+      return quote;
+    },
   });
 }
 
 export function useQuote(lines: CartLine[], couponCode: string | null) {
-  return useQuery({ ...quoteQuery(lines, couponCode), placeholderData: keepPreviousData });
+  const session = useSession();
+  const userId = session.data?.id ?? null;
+  return useQuery({
+    ...quoteQuery(lines, couponCode, userId),
+    enabled: session.isSuccess,
+    placeholderData: keepPreviousData,
+  });
 }

@@ -1,19 +1,36 @@
-import axios, { isAxiosError } from "axios";
+import axios, { isAxiosError, type InternalAxiosRequestConfig } from "axios";
+import {
+  captureSessionIdentity,
+  isCurrentSession,
+  type SessionIdentity,
+} from "@/features/auth/session-identity";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "/api",
 });
 
-api.interceptors.request.use((config) => {
-  const token =
-    typeof localStorage === "undefined"
-      ? null
-      : localStorage.getItem("kurio.session");
+export type SessionStamp = { identity: SessionIdentity; token: string | null };
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+type StampedConfig = InternalAxiosRequestConfig & { kurioSession?: SessionStamp };
+
+function readToken(): string | null {
+  try {
+    return typeof localStorage === "undefined" ? null : localStorage.getItem("kurio.session");
+  } catch {
+    return null;
   }
+}
 
+/** 401 só derruba a sessão se o request saiu com o token e a geração que ainda estão valendo. */
+export function requestMatchesCurrentSession(stamp: SessionStamp | undefined, tokenNow: string | null): boolean {
+  if (!stamp?.token || stamp.token !== tokenNow) return false;
+  return isCurrentSession(stamp.identity);
+}
+
+api.interceptors.request.use((config) => {
+  const token = readToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  (config as StampedConfig).kurioSession = { identity: captureSessionIdentity(), token };
   return config;
 });
 
@@ -46,8 +63,12 @@ export function isSessionExpiry(status: number | undefined, url: string | undefi
 
 api.interceptors.response.use(undefined, (error: unknown) => {
   if (isAxiosError(error) && error.config) {
-    const sentToken = Boolean(error.config.headers?.Authorization);
-    if (isSessionExpiry(error.response?.status, error.config.url, sentToken)) {
+    const stamped = error.config as StampedConfig;
+    const sentToken = Boolean(stamped.kurioSession?.token ?? stamped.headers?.Authorization);
+    if (
+      isSessionExpiry(error.response?.status, error.config.url, sentToken) &&
+      requestMatchesCurrentSession(stamped.kurioSession, readToken())
+    ) {
       unauthorizedHandler?.({ url: error.config.url ?? "" });
     }
   }

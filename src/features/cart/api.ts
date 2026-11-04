@@ -1,6 +1,12 @@
-import { keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CancelledError, keepPreviousData, queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useSession } from "@/features/auth/session";
+import {
+  captureSessionIdentity,
+  isCurrentSession,
+  privateQueryKey,
+  type SessionIdentity,
+} from "@/features/auth/session-identity";
 import { isNotFound, nftDetailQuery } from "@/features/nft/api";
 import { api } from "@/shared/api/client";
 import { queryClient } from "@/shared/api/query-client";
@@ -17,13 +23,23 @@ import { requestQuote, toQuoteItems } from "./quote";
 
 export const cartQueryKey = ["cart"] as const;
 
-const serverCartQuery = queryOptions({
-  queryKey: [...cartQueryKey, "server"] as const,
-  queryFn: async ({ signal }) => {
-    const { data } = await api.get("/cart", { signal });
-    return cartViewSchema.parse(data);
-  },
-});
+function serverCartQuery(userId: string) {
+  return queryOptions({
+    queryKey: privateQueryKey(userId, "cart", "server"),
+    queryFn: async ({ signal }) => {
+      const identity = captureSessionIdentity();
+      const { data } = await api.get("/cart", { signal });
+      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
+      return cartViewSchema.parse(data);
+    },
+  });
+}
+
+function refreshCart(client: ReturnType<typeof useQueryClient>, identity: SessionIdentity | undefined) {
+  if (!identity || !isCurrentSession(identity)) return;
+  if (identity.userId) void client.invalidateQueries({ queryKey: privateQueryKey(identity.userId, "cart") });
+  void client.invalidateQueries({ queryKey: cartQueryKey });
+}
 
 /** Linhas de exibição do visitante: o item guardado mais o detalhe atual do NFT. */
 export async function loadGuestLines(raw: string): Promise<CartLine[]> {
@@ -80,7 +96,7 @@ export function useCart(): CartState {
   const raw = useGuestCartRaw();
   const guestCoupon = useGuestCoupon();
 
-  const server = useQuery({ ...serverCartQuery, enabled: user !== null });
+  const server = useQuery({ ...(user ? serverCartQuery(user.id) : serverCartQuery("pending")), enabled: user !== null });
   const guest = useQuery({
     queryKey: [...cartQueryKey, "guest", raw] as const,
     queryFn: () => loadGuestLines(raw),
@@ -112,7 +128,7 @@ export function useCartCount(): number {
   const raw = useGuestCartRaw();
   const user = session.data ?? null;
   const server = useQuery({
-    ...serverCartQuery,
+    ...(user ? serverCartQuery(user.id) : serverCartQuery("pending")),
     enabled: user !== null,
     select: (cart) => cart.items.reduce((sum, line) => sum + line.quantity, 0),
   });
@@ -125,28 +141,33 @@ export function useCartCount(): number {
 
 export function useCartActions(isGuest: boolean) {
   const client = useQueryClient();
-  const refresh = () => client.invalidateQueries({ queryKey: cartQueryKey });
 
   const setQuantity = useMutation({
     mutationFn: async ({ line, quantity }: { line: CartLine; quantity: number }) => {
+      const identity = captureSessionIdentity();
       if (isGuest) {
         setGuestQuantity(line.slug, line.editionId, quantity, line.available);
         return;
       }
       await api.patch(`/cart/items/${encodeURIComponent(line.id)}`, { quantity });
+      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
     },
-    onSettled: refresh,
+    onMutate: () => captureSessionIdentity(),
+    onSettled: (_data, _error, _vars, identity) => refreshCart(client, identity),
   });
 
   const remove = useMutation({
     mutationFn: async (line: CartLine) => {
+      const identity = captureSessionIdentity();
       if (isGuest) {
         removeGuestItem(line.slug, line.editionId);
         return;
       }
       await api.delete(`/cart/items/${encodeURIComponent(line.id)}`);
+      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
     },
-    onSettled: refresh,
+    onMutate: () => captureSessionIdentity(),
+    onSettled: (_data, _error, _vars, identity) => refreshCart(client, identity),
   });
 
   return { setQuantity, remove };
@@ -166,16 +187,24 @@ export function useCouponActions(isGuest: boolean, lines: CartLine[]) {
 
   const apply = useMutation({
     mutationFn: async (code: string) => {
+      const identity = captureSessionIdentity();
       const normalized = code.trim().toUpperCase();
       await requestQuote(toQuoteItems(lines), normalized);
+      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
       await save(normalized);
     },
-    onSettled: () => client.invalidateQueries({ queryKey: cartQueryKey }),
+    onMutate: () => captureSessionIdentity(),
+    onSettled: (_data, _error, _vars, identity) => refreshCart(client, identity),
   });
 
   const clear = useMutation({
-    mutationFn: () => save(null),
-    onSettled: () => client.invalidateQueries({ queryKey: cartQueryKey }),
+    mutationFn: async () => {
+      const identity = captureSessionIdentity();
+      await save(null);
+      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
+    },
+    onMutate: () => captureSessionIdentity(),
+    onSettled: (_data, _error, _vars, identity) => refreshCart(client, identity),
   });
 
   return { apply, clear };
