@@ -27,11 +27,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="hidden lg:block">
           <SiteHeader cartCount={cartCount} />
         </div>
-        {!auth ? (
-          <div className="lg:hidden">
-            <SiteHeader cartCount={cartCount} compact />
-          </div>
-        ) : null}
       </div>
       <PriceNotices />
       {auth ? (
@@ -42,8 +37,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main
         className={
           auth
-            ? "mx-auto w-full max-w-[1200px] flex-1 px-5 sm:px-6 lg:px-0"
-            : "mx-auto w-full max-w-[1200px] flex-1 px-5 sm:px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:px-0 lg:pb-8"
+            ? "mx-auto w-full max-w-[1200px] flex-1 px-7 sm:px-6 lg:px-0"
+            : "mx-auto w-full max-w-[1200px] flex-1 px-6 sm:px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:px-0 lg:pb-8"
         }
       >
         {children}
@@ -53,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SiteFooter />
         </div>
       ) : null}
-      {!auth ? <MobileNavigation /> : null}
+      {pathname === "/" ? <MobileNavigation /> : null}
       <ScenarioPanel />
     </div>
   );

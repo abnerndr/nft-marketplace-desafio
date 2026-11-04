@@ -3,8 +3,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { CollectorFields } from "@/features/checkout/collector-fields";
 import { emptyCollector, type CollectorInput } from "@/features/checkout/types";
-import backArrow from "@/assets/cart/back-arrow.svg";
-import backCircle from "@/assets/cart/back-circle.svg";
 import arrowDown from "@/assets/checkout/arrow-down.svg";
 import kebab from "@/assets/checkout/kebab.svg";
 import line from "@/assets/checkout/line-items.svg";
@@ -13,6 +11,7 @@ import providerCircle from "@/assets/checkout/provider-circle.svg";
 import radioOff from "@/assets/checkout/radio-off-mobile.svg";
 import radioOn from "@/assets/checkout/radio-on-mobile.svg";
 import walletIcon from "@/assets/checkout/wallet.svg";
+import { MobileScreenHeader } from "@/components/mobile-screen-header";
 import { useSession } from "@/features/auth/session";
 import { useCart } from "@/features/cart/api";
 import { checkoutQuoteQuery } from "@/features/cart/quote";
@@ -613,13 +612,11 @@ export function PaymentPage() {
             / Pagamento
           </p>
         </nav>
-        <header className="flex h-11 items-center lg:hidden">
-          <Link to="/cart" aria-label="Voltar ao carrinho" className="relative flex size-[35px] items-center justify-center">
-            <img src={backCircle} alt="" className="absolute inset-0" />
-            <img src={backArrow} alt="" className="relative rotate-90" />
-          </Link>
-          <h1 className="flex-1 pr-[35px] text-center text-xl font-bold leading-4 text-foreground">Pagamento com carteira</h1>
-        </header>
+        <MobileScreenHeader
+          title="Pagamento com carteira"
+          backTo="/cart"
+          backAriaLabel="Voltar ao carrinho"
+        />
         <h1 className="sr-only max-lg:hidden">Pagamento com carteira</h1>
       </div>
 
@@ -644,16 +641,16 @@ export function PaymentPage() {
       ) : (
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
           <div className="flex flex-col gap-8 lg:w-[763px]">
-            {userId ? (
+            <div className="order-3 lg:order-1">{userId ? (
               <CollectorFields
                 userId={userId}
                 wallet={selected}
                 apiErrors={placeError?.fields}
                 onValidityChange={onCollectorValidity}
               />
-            ) : null}
-            <WalletsSection wallets={walletList} selectedId={selected?.id ?? null} onSelect={setPickedId} />
-            <AddWalletForm onAdded={(wallet) => setPickedId(wallet.id)} />
+            ) : null}</div>
+            <div className="order-1 lg:order-2"><WalletsSection wallets={walletList} selectedId={selected?.id ?? null} onSelect={setPickedId} /></div>
+            <div className="order-2 lg:order-3"><AddWalletForm onAdded={(wallet) => setPickedId(wallet.id)} /></div>
           </div>
 
           <aside aria-label="Resumo do pedido" className="flex flex-col gap-5 lg:w-[405px] lg:shrink-0">

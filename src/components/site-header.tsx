@@ -16,6 +16,8 @@ type SiteHeaderProps = {
   cartCount?: number;
   /** Busca “Explorar coleções” + filtro na mesma linha (frame mobile). */
   compact?: boolean;
+  onOpenFilters?: () => void;
+  filtersOpen?: boolean;
 };
 
 const navLinkClass =
@@ -84,7 +86,7 @@ function AccountControl({ tabIndex }: { tabIndex?: number }) {
   );
 }
 
-export function SiteHeader({ cartCount = 0, compact = false }: SiteHeaderProps) {
+export function SiteHeader({ cartCount = 0, compact = false, onOpenFilters, filtersOpen = false }: SiteHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
@@ -124,25 +126,8 @@ export function SiteHeader({ cartCount = 0, compact = false }: SiteHeaderProps) 
 
   if (compact) {
     return (
-      <header className="w-full pt-4">
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3 px-5 sm:px-6 lg:px-0">
-          <div className="flex items-center justify-between">
-            <Link to="/" tabIndex={-1} className="py-1 text-sm font-bold tracking-[0.1em] text-foreground">
-              KURIO
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link to="/cart" tabIndex={-1} aria-label="Carrinho" className="relative block">
-                <img src={cartIcon} alt="" width={22} height={22} />
-                {cartCount > 0 ? (
-                  <span className="absolute top-0 left-[14px] flex size-4 items-center justify-center">
-                    <img src={badge} alt="" width={18} height={18} className="absolute max-w-none" />
-                    <span className="relative text-[10px] font-medium text-ink">{cartCount}</span>
-                  </span>
-                ) : null}
-              </Link>
-              <AccountControl tabIndex={-1} />
-            </div>
-          </div>
+      <header className="w-full pt-10">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3">
           <form
             role="search"
             onSubmit={handleSearch}
@@ -162,11 +147,11 @@ export function SiteHeader({ cartCount = 0, compact = false }: SiteHeaderProps) 
             </label>
             <Button
               type="button"
-              aria-label="Ir ao catálogo e filtros"
+              aria-label="Filtros"
+              aria-expanded={filtersOpen}
+              aria-controls="catalogo-filtros-mobile"
               className="size-[45px] shrink-0 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary p-0"
-              onClick={() => {
-                void navigate({ to: "/", hash: "catalogo" });
-              }}
+              onClick={onOpenFilters}
             >
               <img src={filterIcon} alt="" width={22} height={22} />
             </Button>

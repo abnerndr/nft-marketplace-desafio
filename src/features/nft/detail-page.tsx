@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import arrowLeft from "@/assets/nft/arrow-left.svg";
 import heart from "@/assets/nft/heart.svg";
 import heartSmall from "@/assets/nft/heart-small.svg";
 import lineDetails from "@/assets/nft/line-details.svg";
@@ -20,11 +19,12 @@ import starEmpty from "@/assets/nft/star-empty.svg";
 import starFilled from "@/assets/nft/star-filled.svg";
 import starMobile from "@/assets/nft/star-mobile.svg";
 import twitter from "@/assets/nft/twitter.svg";
+import { MobileScreenHeader } from "@/components/mobile-screen-header";
 import { nftListQuery } from "@/features/catalog/api";
 import { NftCard } from "@/features/catalog/nft-card";
 import { toParams, type CollectionId } from "@/features/catalog/search";
 import { captureSessionIdentity, isCurrentSession, privateQueryKey } from "@/features/auth/session-identity";
-import { cartQueryKey } from "@/features/cart/api";
+import { cartQueryKey, useCartCount } from "@/features/cart/api";
 import { useFavorite } from "@/features/favorites/use-favorite";
 import { readApiError } from "@/shared/api/errors";
 import type { Edition, NftDetail } from "@/shared/domain/contracts";
@@ -160,6 +160,7 @@ function ShareLinks({ title }: { title: string }) {
 
 function PurchaseBar({ nft }: { nft: NftDetail }) {
   const navigate = useNavigate();
+  const cartCount = useCartCount();
   const client = useQueryClient();
   const [editionId, setEditionId] = useState(() => defaultEdition(nft.editions)?.id ?? "");
   const [quantityText, setQuantityText] = useState("1");
@@ -226,7 +227,7 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-3 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[58px] max-lg:z-20 max-lg:rounded-t-[40px] max-lg:bg-surface-card max-lg:px-6 max-lg:pb-5 max-lg:pt-5 max-lg:shadow-[0_0_10px_rgba(10,6,4,0.45)]">
+      <div className="flex flex-col gap-3 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-20 max-lg:rounded-t-[40px] max-lg:bg-surface-card max-lg:px-6 max-lg:pb-[max(1.25rem,env(safe-area-inset-bottom))] max-lg:pt-5 max-lg:shadow-[0_0_10px_rgba(10,6,4,0.45)]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center justify-between lg:justify-start">
             <div className="flex items-center gap-2">
@@ -293,10 +294,11 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
             </button>
             <Link
               to="/cart"
-              aria-label="Ver carrinho"
-              className="flex size-[60px] items-center justify-center rounded-[40px] border border-border bg-[#2F1D15] lg:hidden"
+              aria-label="Carrinho"
+              className="relative flex size-[60px] items-center justify-center rounded-[40px] border border-border bg-[#2F1D15] lg:hidden"
             >
               <img src={shop} alt="" />
+              {cartCount > 0 ? <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-ink">{cartCount}</span> : null}
             </Link>
             <button
               type="button"
@@ -338,7 +340,7 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
 
 function Description({ nft }: { nft: NftDetail }) {
   return (
-    <section aria-labelledby="nft-description-title" className="flex flex-col gap-3">
+    <section aria-labelledby="nft-description-title" className="flex flex-col gap-3 max-lg:px-6">
       <div className="flex flex-col gap-3">
         <div className="flex w-[161px] flex-col gap-3">
           <h2 id="nft-description-title" className="text-[17px] font-bold leading-4 text-text-accent">
@@ -385,7 +387,7 @@ function RelatedNfts({ nft }: { nft: NftDetail }) {
   if (items.length === 0) return null;
 
   return (
-    <section aria-labelledby="related-title" className="flex flex-col gap-8">
+    <section aria-labelledby="related-title" className="flex flex-col gap-8 max-lg:px-6">
       <div className="flex flex-col gap-3">
         <h2 id="related-title" className="text-[17px] font-bold leading-4 text-text-accent">
           Mais desta coleção
@@ -408,9 +410,9 @@ function DetailContent({ nft }: { nft: NftDetail }) {
   return (
     <article
       aria-label={nft.title}
-      className="flex flex-col gap-12 pb-[220px] pt-4 lg:gap-24 lg:pb-12 lg:pt-6"
+      className="flex flex-col gap-12 pb-[220px] max-lg:-mx-6 lg:gap-24 lg:pb-12 lg:pt-6"
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2 max-lg:bg-gradient-to-br max-lg:from-surface-card max-lg:to-[#2F1D15] max-lg:px-7 max-lg:pt-6 lg:gap-3">
         <nav aria-label="Navegação estrutural" className="hidden lg:block">
           <p className="text-[15px] font-bold leading-4 text-foreground">
             <Link to="/">Início</Link> /{" "}
@@ -420,32 +422,29 @@ function DetailContent({ nft }: { nft: NftDetail }) {
           </p>
         </nav>
 
-        <div className="flex items-center justify-between lg:hidden">
-          <Link
-            to="/"
-            aria-label="Voltar ao catálogo"
-            className="flex size-[35px] items-center justify-center rounded-full border border-border bg-[#2F1D15]"
-          >
-            <img src={arrowLeft} alt="" className="rotate-90" />
-          </Link>
-          <button
-            type="button"
-            aria-label={favorite.isFavorite ? "Remover dos favoritos" : "Favoritar"}
-            aria-pressed={favorite.isFavorite}
-            onClick={favorite.toggle}
-            disabled={favorite.isPending}
-            className={`flex size-[35px] items-center justify-center rounded-full border border-border disabled:opacity-60 ${
-              favorite.isFavorite ? "bg-primary/30" : "bg-[#2F1D15]"
-            }`}
-          >
-            <img src={heartSmall} alt="" />
-          </button>
-        </div>
+        <MobileScreenHeader
+          backTo="/"
+          backAriaLabel="Voltar ao catálogo"
+          trailing={
+            <button
+              type="button"
+              aria-label={favorite.isFavorite ? "Remover dos favoritos" : "Favoritar"}
+              aria-pressed={favorite.isFavorite}
+              onClick={favorite.toggle}
+              disabled={favorite.isPending}
+              className={`flex size-[35px] items-center justify-center rounded-full border border-border disabled:opacity-60 ${
+                favorite.isFavorite ? "bg-primary/30" : "bg-[#2F1D15]"
+              }`}
+            >
+              <img src={heartSmall} alt="" />
+            </button>
+          }
+        />
 
-        <div className="flex flex-col gap-8 lg:flex-row">
+        <div className="flex flex-col lg:flex-row lg:gap-8">
           <NftGallery title={nft.title} images={nft.images} />
 
-          <div className="flex flex-col gap-3 rounded-t-[31px] bg-surface-card px-6 pb-6 pt-8 lg:min-w-px lg:flex-1 lg:justify-between lg:gap-6 lg:rounded-none lg:bg-transparent lg:p-0">
+          <div className="flex flex-col gap-3 rounded-t-[31px] bg-surface-card px-6 pb-6 pt-8 max-lg:relative max-lg:-mx-7 max-lg:-mt-[30px] lg:min-w-px lg:flex-1 lg:justify-between lg:gap-6 lg:rounded-none lg:bg-transparent lg:p-0">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3 lg:flex-col lg:items-stretch lg:justify-start">

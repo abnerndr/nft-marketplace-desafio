@@ -5,7 +5,7 @@ import { resolveNftAsset } from "@/shared/domain/nft-assets";
  * Versão do seed persistido. Subir quando o formato/arte do seed mudar
  * (ex.: troca de placeholders `/nfts/*.svg` por PNGs do Figma) para invalidar `kurio.mock`.
  */
-export const SEED_VERSION = 5;
+export const SEED_VERSION = 6;
 
 /** Campos de perfil são opcionais: o seed e bancos antigos não os têm. */
 export type UserRecord = User & {
@@ -155,9 +155,12 @@ function createNfts(): NftSummary[] {
 
 // SHA-256 em hex, calculado uma vez e colado aqui. Nunca a senha em texto.
 // Credenciais de demo: test@kurio.test / kurio.teste
-const TEST_PASSWORD_HASH = "84004affba3724de3d9d2f123c4ce9c966038aea5f1747f59ac944131f2914b0";
+// SHA-256 em hex, calculado uma vez e colado aqui. Nunca a senha em texto.
+const MARINA_PASSWORD_HASH = "56469c8cf5318bc0c0f5fd037d61f055f5071e1c5f676af9c229b22bf55387d2";
+const RAFAEL_PASSWORD_HASH = "60d9cad40db849fa00aab20f87ba8e0b9cff64fe5cf38a9e28d87f7a8f734a6d";
 
-export const TEST_ID = "user_test";
+export const MARINA_ID = "user-marina";
+export const RAFAEL_ID = "user-rafael";
 
 export function createSeed(): Database {
 	const nfts = createNfts();
@@ -177,16 +180,25 @@ export function createSeed(): Database {
 	}
 	return {
 		nfts,
-		users: [{ id: TEST_ID, name: "Test", email: "test@kurio.test", passwordHash: TEST_PASSWORD_HASH }],
+		users: [
+			{ id: MARINA_ID, name: "Marina Alves", email: "marina@kurio.test", passwordHash: MARINA_PASSWORD_HASH },
+			{ id: RAFAEL_ID, name: "Rafael Costa", email: "rafael@kurio.test", passwordHash: RAFAEL_PASSWORD_HASH },
+		],
 		carts: {
-			[TEST_ID]: { items: [], couponCode: null },
+			[MARINA_ID]: { items: [], couponCode: null },
+			[RAFAEL_ID]: { items: [], couponCode: null },
 		},
 		orders: [],
 		favorites: {
-			[TEST_ID]: ["emerald-ape-042"],
+			[MARINA_ID]: ["emerald-ape-042"],
+			[RAFAEL_ID]: [],
 		},
 		wallets: {
-			[TEST_ID]: [{ id: "wallet-test-1", label: "Carteira principal", address: "0x4a1c9be2d03f7a85c6e1b2f09d34a7c85e61f0b3", network: "ethereum", primary: true }],
+			[MARINA_ID]: [
+				{ id: "wallet-marina-1", label: "Carteira principal", address: "0x4a1c9be2d03f7a85c6e1b2f09d34a7c85e61f0b3", network: "ethereum", primary: true },
+				{ id: "wallet-marina-2", label: "Carteira Polygon", address: "0x91be07c3a5d2e48f60b19c7d3a82e54f1c06ad27", network: "polygon" },
+			],
+			[RAFAEL_ID]: [],
 		},
 		sessions: {},
 		editionStock,

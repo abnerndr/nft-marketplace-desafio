@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
-import backArrow from "@/assets/cart/back-arrow.svg";
-import backCircle from "@/assets/cart/back-circle.svg";
 import deleteIcon from "@/assets/cart/delete.svg";
 import deleteMobile from "@/assets/cart/delete-mobile.svg";
 import lineSummary from "@/assets/cart/line-summary.svg";
@@ -12,6 +10,7 @@ import minusActiveMobile from "@/assets/cart/minus-active-mobile.svg";
 import minusDisabledMobile from "@/assets/cart/minus-disabled-mobile.svg";
 import plus from "@/assets/cart/plus.svg";
 import lineSection from "@/assets/nft/line-section.svg";
+import { MobileScreenHeader } from "@/components/mobile-screen-header";
 import { nftListQuery } from "@/features/catalog/api";
 import { NftCard } from "@/features/catalog/nft-card";
 import { toParams } from "@/features/catalog/search";
@@ -415,13 +414,7 @@ export function CartPage() {
           </p>
         </nav>
 
-        <header className="flex h-11 items-center lg:hidden">
-          <Link to="/" aria-label="Voltar ao catálogo" className="relative flex size-[35px] items-center justify-center">
-            <img src={backCircle} alt="" className="absolute inset-0" />
-            <img src={backArrow} alt="" className="relative rotate-90" />
-          </Link>
-          <h1 className="flex-1 pr-[35px] text-center text-xl font-bold leading-4 text-foreground">Carrinho de NFTs</h1>
-        </header>
+        <MobileScreenHeader title="Carrinho de NFTs" backTo="/" backAriaLabel="Voltar ao catálogo" />
         <h1 className="sr-only max-lg:hidden">Carrinho de NFTs</h1>
 
         {cart.isPending ? (

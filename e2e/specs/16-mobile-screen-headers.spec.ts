@@ -13,6 +13,7 @@ test.describe("mobile screen headers (390)", () => {
   });
 
   test("pagamento: voltar + título Pagamento com carteira", async ({ kurio, page }) => {
+    await kurio.open("/");
     await kurio.login("marina");
     await kurio.addToCart(SEED.firstNft.slug);
     await page.goto("/checkout");

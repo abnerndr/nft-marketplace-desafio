@@ -6,14 +6,14 @@ import arrowRight from "@/assets/home/arrow-right.svg";
 import artDark from "@/assets/home/art-dark.png";
 import artOrange from "@/assets/home/art-orange.png";
 import artPurple from "@/assets/home/art-purple.png";
-import filterIcon from "@/assets/home/filter.svg";
 import heroArt from "@/assets/home/hero-art.png";
 import heroBg from "@/assets/home/hero-bg.svg";
 import heroDots from "@/assets/home/hero-dots.svg";
+import heroDotsMobile from "@/assets/home/hero-dots-mobile.svg";
 import pageNext from "@/assets/home/page-next.svg";
 import promoMask from "@/assets/home/promo-mask.svg";
 import tabUnderline from "@/assets/home/tab-underline.svg";
-import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/site-header";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { readApiError } from "@/shared/api/errors";
 import { nftListQuery } from "./api";
@@ -39,7 +39,7 @@ function Hero() {
   return (
     <section
       aria-labelledby="hero-title"
-      className="relative flex flex-col justify-center overflow-hidden rounded-[30px] bg-surface-card p-4 lg:h-[450px] lg:rounded-none lg:bg-transparent lg:p-0 lg:pl-10"
+      className="relative flex min-h-[190px] flex-col justify-center overflow-hidden rounded-[30px] bg-surface-card p-4 lg:h-[450px] lg:rounded-none lg:bg-transparent lg:p-0 lg:pl-10"
     >
       <img
         src={heroBg}
@@ -49,10 +49,10 @@ function Hero() {
       />
       <div className="relative flex w-full items-center justify-between gap-2 lg:gap-0">
         <div className="flex min-w-0 flex-col gap-4 lg:w-[600px] lg:items-end lg:gap-11">
-          <div className="flex w-full flex-col gap-4 lg:gap-8">
+          <div className="flex w-full flex-col lg:gap-8">
             <div className="flex flex-col gap-1.5 lg:gap-1">
               <div className="flex flex-col gap-1.5 text-foreground lg:gap-2">
-                <p className="text-xs font-medium leading-4 text-kurio-secondary lg:text-sm lg:tracking-[0.1em] lg:text-foreground">
+                <p className="text-xs font-medium leading-4 text-foreground lg:text-sm lg:tracking-[0.1em]">
                   Bem-vindo à Kurio
                 </p>
                 <h1 id="hero-title" className="text-lg font-bold lg:text-[43px]">
@@ -120,6 +120,7 @@ function Hero() {
           />
         </div>
       </div>
+      <img src={heroDotsMobile} alt="" aria-hidden="true" width={33} height={7} className="absolute bottom-[6px] left-1/2 -translate-x-1/2 lg:hidden" />
     </section>
   );
 }
@@ -236,7 +237,7 @@ function Pagination({
 }
 
 const GRID =
-  "grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-[repeat(auto-fill,258px)] sm:justify-between sm:gap-y-[72px]";
+  "grid grid-cols-2 gap-x-4 gap-y-6 max-sm:pb-8 max-sm:[&>article:nth-child(even)]:translate-y-8 sm:grid-cols-[repeat(auto-fill,258px)] sm:justify-between sm:gap-y-[72px]";
 
 function hasFilters(search: CatalogSearch): boolean {
   return Boolean(
@@ -249,10 +250,9 @@ function hasFilters(search: CatalogSearch): boolean {
   );
 }
 
-function Catalog() {
+function Catalog({ filtersOpen, setFiltersOpen }: { filtersOpen: boolean; setFiltersOpen: (open: boolean) => void }) {
   const search = useSearch({ strict: false }) as CatalogSearch;
   const navigate = useNavigate({ from: "/" });
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const params = toParams(search);
   const query = useQuery(nftListQuery(params));
 
@@ -335,18 +335,8 @@ function Catalog() {
       <h2 id="catalogo-titulo" className="sr-only">
         Catálogo de NFTs
       </h2>
-      <div className="flex flex-col gap-6 lg:flex-row lg:gap-12">
+      <div className="flex flex-col lg:flex-row lg:gap-12">
         <aside className="flex flex-col gap-6 lg:w-[310px] lg:shrink-0">
-          <Button
-            type="button"
-            aria-expanded={filtersOpen}
-            aria-controls="catalogo-filtros-mobile"
-            className="h-11 gap-2 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary lg:hidden"
-            onClick={() => setFiltersOpen(true)}
-          >
-            <img src={filterIcon} alt="" width={16} height={16} />
-            Filtros
-          </Button>
           <Sheet open={filtersOpen} onOpenChange={setFiltersOpen} modal={false}>
             <SheetContent
               side="bottom"
@@ -544,10 +534,14 @@ function Diary() {
 }
 
 export function HomePage() {
+  const [filtersOpen, setFiltersOpen] = useState(false);
   return (
-    <div className="flex flex-col gap-16 py-6 lg:gap-24 lg:pt-8">
+    <div className="flex flex-col gap-4 pb-6 lg:gap-24 lg:pt-8">
+      <div className="lg:hidden">
+        <SiteHeader compact filtersOpen={filtersOpen} onOpenFilters={() => setFiltersOpen(true)} />
+      </div>
       <Hero />
-      <Catalog />
+      <Catalog filtersOpen={filtersOpen} setFiltersOpen={setFiltersOpen} />
       <Promos />
       <Diary />
     </div>
