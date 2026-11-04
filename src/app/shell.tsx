@@ -19,6 +19,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   useRealtime();
 
   const auth = isAuthRoute(pathname);
+  const showMobileNav = pathname === "/";
+  const mainClassName = auth
+    ? "mx-auto w-full max-w-[1200px] flex-1 px-7 sm:px-6 lg:px-0"
+    : showMobileNav
+      ? "mx-auto w-full max-w-[1200px] flex-1 px-6 sm:px-6 pb-[calc(126px+env(safe-area-inset-bottom))] lg:px-0 lg:pb-8"
+      : "mx-auto w-full max-w-[1200px] flex-1 px-6 sm:px-6 lg:px-0 lg:pb-8";
 
   return (
     <div className="flex min-h-screen flex-col bg-ink text-foreground">
@@ -34,13 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <HomePage />
         </div>
       ) : null}
-      <main
-        className={
-          auth
-            ? "mx-auto w-full max-w-[1200px] flex-1 px-7 sm:px-6 lg:px-0"
-            : "mx-auto w-full max-w-[1200px] flex-1 px-6 sm:px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:px-0 lg:pb-8"
-        }
-      >
+      <main className={mainClassName}>
         {children}
       </main>
       {!pathname.startsWith("/account/") ? (
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SiteFooter />
         </div>
       ) : null}
-      {pathname === "/" ? <MobileNavigation /> : null}
+      {showMobileNav ? <MobileNavigation /> : null}
       <ScenarioPanel />
     </div>
   );

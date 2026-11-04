@@ -154,8 +154,7 @@ function createNfts(): NftSummary[] {
 }
 
 // SHA-256 em hex, calculado uma vez e colado aqui. Nunca a senha em texto.
-// Credenciais de demo: test@kurio.test / kurio.teste
-// SHA-256 em hex, calculado uma vez e colado aqui. Nunca a senha em texto.
+// Credenciais de demo: marina@kurio.test / Marina#2026 ; rafael@kurio.test / Rafael#2026
 const MARINA_PASSWORD_HASH = "56469c8cf5318bc0c0f5fd037d61f055f5071e1c5f676af9c229b22bf55387d2";
 const RAFAEL_PASSWORD_HASH = "60d9cad40db849fa00aab20f87ba8e0b9cff64fe5cf38a9e28d87f7a8f734a6d";
 
