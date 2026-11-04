@@ -185,6 +185,7 @@ test.describe("perfil, avatar, senha e carteiras", () => {
 
     await kurio.connectWallet("Carteira principal");
     await expect(page.getByRole("alert").filter({ hasText: "A conexão foi recusada na carteira." })).toHaveCount(0);
+    await kurio.fillCollector();
     await expect(page.getByRole("button", { name: "Confirmar compra" })).toBeEnabled();
   });
 
@@ -209,6 +210,13 @@ test.describe("perfil, avatar, senha e carteiras", () => {
     await form.getByRole("button", { name: "Adicionar carteira" }).click();
     await expect(page.getByRole("list", { name: "Carteiras" })).toContainText("Carteira do Rafael");
     await kurio.connectWallet("Carteira do Rafael");
+    await kurio.fillCollector({
+      displayName: "Rafael Costa",
+      username: "rafael",
+      profileName: "Rafael",
+      email: "rafael@kurio.test",
+      ensName: "rafael",
+    });
     await expect(page.getByRole("button", { name: "Confirmar compra" })).toBeEnabled();
   });
 });

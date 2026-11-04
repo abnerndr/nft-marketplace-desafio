@@ -61,7 +61,7 @@ export type WalletUpdate = {
   label?: string;
   address?: string;
   network?: WalletNetwork;
-};
+} & WalletExtras;
 
 export function isWalletNetwork(value: unknown): value is WalletNetwork {
   return typeof value === "string" && (WALLET_NETWORKS as readonly string[]).includes(value);

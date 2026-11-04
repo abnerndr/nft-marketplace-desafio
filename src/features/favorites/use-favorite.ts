@@ -103,8 +103,9 @@ export function useFavorite(slug: string) {
 
   return {
     isFavorite,
-    isPending: mutation.isPending || list.isPending,
-    isError: mutation.isError || list.isError,
+    // Query desabilitada (visitante) fica `isPending` no TanStack Query v5 — não bloquear o botão.
+    isPending: mutation.isPending || (userId !== undefined && list.isPending),
+    isError: mutation.isError || (userId !== undefined && list.isError),
     error: mutation.error ?? list.error,
     retry: () => {
       if (list.isError) void list.refetch();

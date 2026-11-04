@@ -23,6 +23,19 @@ test.describe("teclado, foco e validação de formulário", () => {
     await kurio.open("/");
     await expect(page.locator("#catalogo-grade article")).toHaveCount(SEED.pageSize);
 
+    const viewport = page.viewportSize();
+    const compact = (viewport?.width ?? 1440) < 1024;
+
+    if (compact) {
+      const order: string[] = [];
+      for (let step = 0; step < 2; step += 1) {
+        await page.keyboard.press("Tab");
+        order.push(await focused(page));
+      }
+      expect(order).toEqual(["Explorar coleções", "Ir ao catálogo e filtros"]);
+      return;
+    }
+
     const order: string[] = [];
     for (let step = 0; step < 8; step += 1) {
       await page.keyboard.press("Tab");
@@ -33,6 +46,20 @@ test.describe("teclado, foco e validação de formulário", () => {
 
   test("a busca abre pelo teclado, devolve o foco ao fechar e envia com Enter", async ({ kurio, page }) => {
     await kurio.open("/");
+    const viewport = page.viewportSize();
+    const compact = (viewport?.width ?? 1440) < 1024;
+
+    if (compact) {
+      const box = page.getByRole("searchbox", { name: "Explorar coleções" });
+      await box.focus();
+      await expect(box).toBeFocused();
+      await page.keyboard.type("golden");
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(/q=golden/);
+      await expect(page.locator("#catalogo-grade article").first()).toContainText("Golden");
+      return;
+    }
+
     const toggle = page.getByRole("button", { name: "Abrir busca" });
 
     await toggle.focus();
@@ -197,6 +224,7 @@ test.describe("teclado, foco e validação de formulário", () => {
     await expect(approve).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: "Desconectar Carteira Polygon" })).toBeVisible();
+    await kurio.fillCollector();
     await expect(page.getByRole("button", { name: "Confirmar compra" })).toBeEnabled();
   });
 
