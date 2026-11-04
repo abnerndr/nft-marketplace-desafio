@@ -74,6 +74,22 @@ describe("POST /api/quote", () => {
     expect(parsed.subtotalEth).toBe("0");
     expect(parsed.totalEth).toBe("0.02");
   });
+
+  it("rejeita payload malformado, recurso desconhecido e saldo insuficiente", async () => {
+    expect((await quote({ items: [{ slug: "emerald-ape-042", quantity: 1 }], couponCode: null })).status).toBe(422);
+    expect((await quote({ items: [{ slug: "no-such", editionId: "ed-1-50", quantity: 1 }], couponCode: null })).status).toBe(404);
+    const conflict = await quote({
+      items: [
+        { slug: "emerald-ape-042", editionId: "ed-1-50", quantity: 5 },
+        { slug: "emerald-ape-042", editionId: "ed-open", quantity: 5 },
+      ],
+      couponCode: null,
+    });
+    expect(conflict.status).toBe(409);
+    const body = await conflict.json();
+    expect(body.error.code).toBe("edition_sold_out");
+    expect(body.error.conflicts.length).toBeGreaterThan(0);
+  });
 });
 
 describe("cupom salvo no carrinho", () => {

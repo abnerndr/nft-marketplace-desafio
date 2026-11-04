@@ -2,6 +2,7 @@ import { delay, http, HttpResponse } from "msw";
 import { sameOrderAttempt } from "@/features/orders/idempotency";
 import type { Order, OrderItem } from "@/shared/domain/contracts";
 import { getDatabase, saveDatabase } from "../db";
+import { commitInventory, releaseInventory, reserveInventory } from "../inventory";
 import { getScenario, ORDER_TIMEOUT_DELAY_MS } from "../scenarios";
 import { notifyOrderUpdated } from "../socket";
 import type { OrderRecord } from "../seed";
@@ -37,15 +38,13 @@ function newTxRef(): string {
   return `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Tira do carrinho só o que foi comprado e baixa o estoque das unidades vendidas. */
-function applyPurchase(record: OrderRecord): void {
+/** Tira do carrinho só o que foi comprado. O estoque já foi reservado na criação do pedido. */
+function clearPurchasedFromCart(record: OrderRecord): void {
   const db = getDatabase();
   const cart = (db.carts[record.userId] ??= { items: [], couponCode: null });
   for (const bought of record.snapshot.items) {
     const line = cart.items.find((item) => item.slug === bought.slug && item.editionId === bought.editionId);
     if (line) line.quantity -= bought.quantity;
-    const nft = findNftBySlug(bought.slug);
-    if (nft) nft.available = Math.max(0, nft.available - bought.quantity);
   }
   cart.items = cart.items.filter((item) => item.quantity > 0);
   if (cart.items.length === 0) cart.couponCode = null;
@@ -54,7 +53,13 @@ function applyPurchase(record: OrderRecord): void {
 function confirm(record: OrderRecord): void {
   record.status = "confirmed";
   record.txRef = newTxRef();
-  applyPurchase(record);
+  commitInventory(record.id);
+  clearPurchasedFromCart(record);
+}
+
+function decline(record: OrderRecord): void {
+  record.status = "declined";
+  releaseInventory(record.id);
 }
 
 function readItems(userId: string): OrderItem[] {
@@ -140,12 +145,7 @@ export const orderHandlers = [
       return errorResponse(409, "cart_changed", "O cupom do carrinho mudou. Revise o pedido.");
     }
 
-    const soldOut = items.some((item) => {
-      const nft = findNftBySlug(item.slug);
-      const edition = nft ? editionsOf(nft).find((candidate) => candidate.id === item.editionId) : undefined;
-      return !edition || item.quantity > edition.available;
-    });
-    if (soldOut || getScenario() === "edition-sold-out") {
+    if (getScenario() === "edition-sold-out") {
       return errorResponse(409, "edition_sold_out", "Uma das edições esgotou antes do pagamento.");
     }
 
@@ -155,9 +155,22 @@ export const orderHandlers = [
       return errorResponse(409, "quote_changed", "Os valores mudaram. Revise o pedido antes de confirmar.");
     }
 
+    const orderId = `order-${crypto.randomUUID()}`;
+    const lines = items.map((item) => ({
+      slug: item.slug,
+      editionId: item.editionId,
+      quantity: item.quantity,
+    }));
+    const reserved = reserveInventory(orderId, lines);
+    if (!reserved.ok) {
+      return errorResponse(409, "edition_sold_out", "Uma das edições esgotou antes do pagamento.", {
+        conflicts: reserved.conflicts.map((c) => `${c.slug}/${c.editionId}:${c.available}`).join(","),
+      });
+    }
+
     const scenario = getScenario();
     const record: OrderRecord = {
-      id: `order-${crypto.randomUUID()}`,
+      id: orderId,
       status: scenario === "payment-declined" ? "declined" : scenario === "order-timeout" ? "pending" : "confirmed",
       snapshot: { ...result.quote, items, couponCode: body.couponCode },
       txRef: null,
@@ -168,6 +181,7 @@ export const orderHandlers = [
       reads: 0,
     };
     if (record.status === "confirmed") confirm(record);
+    else if (record.status === "declined") decline(record);
     db.orders.push(record);
     db.idempotency[storeKey] = { body: rawBody, orderId: record.id };
     saveDatabase();

@@ -77,3 +77,9 @@ entra nas tasks que criam os handlers correspondentes.
 - Rafael: sem carteira e sem favorito.
 - Senhas guardam só o hex SHA-256. Nunca o texto.
 - `imageUrl` aponta para SVGs locais em `public/nfts/`, um por título da home.
+- **Estoque por edição** (`editionStock`): cada NFT tem saldos independentes `ed-1-1` (sempre 0),
+  `ed-1-10` (metade do agregado), `ed-1-50` e `ed-open` (agregado completo). O campo
+  `nft.available` é o **teto agregado** consumido nas reservas. Pedidos `pending` reservam;
+  `confirmed` faz `commitInventory` (sem segunda baixa); `declined` libera a reserva.
+- Bancos antigos sem `editionStock`: o próximo acesso reconstrói a partir de `nft.available`.
+  Na demonstração use `?reset=1` ou `window.__kurio.reset()` para um seed conhecido.

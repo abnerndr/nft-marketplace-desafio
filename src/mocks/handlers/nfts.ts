@@ -7,6 +7,7 @@ import {
 } from "@/features/catalog/search";
 import type { Edition, NftDetail, NftSummary } from "@/shared/domain/contracts";
 import { getDatabase } from "../db";
+import { availableEditions } from "../inventory";
 import { getScenario, nextOutOfOrderDelay, shouldFailTransient } from "../scenarios";
 
 const MAX_PAGE_SIZE = 48;
@@ -104,16 +105,11 @@ function tokenNumber(slug: string): number {
 }
 
 /**
- * Edições de um NFT, derivadas só do `available` do resumo: a regra fica num lugar
- * e o carrinho valida contra a mesma lista. `1/1` é sempre a edição esgotada.
+ * Edições com saldo independente persistido em `editionStock` (teto agregado em `nft.available`).
+ * `1/1` permanece esgotada no seed. O parâmetro mantém a assinatura usada pelo carrinho/pedido.
  */
 export function editionsOf(nft: NftSummary): Edition[] {
-  return [
-    { id: "ed-1-1", label: "1/1", available: 0 },
-    { id: "ed-1-10", label: "1/10", available: Math.floor(nft.available / 2) },
-    { id: "ed-1-50", label: "1/50", available: nft.available },
-    { id: "ed-open", label: "ABERTA", available: nft.available },
-  ];
+  return availableEditions(nft.slug);
 }
 
 /** "emerald-ape-042" vira "#0042". */

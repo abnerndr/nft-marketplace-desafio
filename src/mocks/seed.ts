@@ -41,6 +41,20 @@ export type OrderRecord = Order & {
 /** Pedido criado com uma chave de idempotência: corpo cru e pedido resultante. */
 export type IdempotencyRecord = { body: string; orderId: string };
 
+/** Saldo persistido por edição (`slug::editionId` na chave do mapa). */
+export type EditionStockRecord = {
+  slug: string;
+  editionId: string;
+  remaining: number;
+  version: number;
+};
+
+/** Reserva de estoque ligada a um pedido: reserved baixa saldo; committed não reaplica. */
+export type InventoryReservation = {
+  lines: Array<{ slug: string; editionId: string; quantity: number }>;
+  state: "reserved" | "committed";
+};
+
 export type Database = {
   nfts: NftSummary[];
   users: UserRecord[];
@@ -54,6 +68,13 @@ export type Database = {
   sessions: Record<string, string>;
   /** Usuários que já receberam a mudança de preço do cenário `price-changed` (uma por sessão). */
   priceChangedFor?: string[];
+  /**
+   * Estoque por edição. Ausente em bancos antigos: `inventory.ensure` reconstrói a partir de
+   * `nft.available` no próximo acesso (reset/`?reset=1` garante seed limpo na demonstração).
+   */
+  editionStock?: Record<string, EditionStockRecord>;
+  /** Reservas por `orderId`. */
+  reservations?: Record<string, InventoryReservation>;
 };
 
 type Collection =
@@ -163,8 +184,23 @@ export const MARINA_ID = "user-marina";
 export const RAFAEL_ID = "user-rafael";
 
 export function createSeed(): Database {
+  const nfts = createNfts();
+  const editionStock: Record<string, EditionStockRecord> = {};
+  // Import lazy via função local para evitar ciclo seed↔inventory na tipagem do seed.
+  for (const nft of nfts) {
+    const half = Math.floor(nft.available / 2);
+    const rows: EditionStockRecord[] = [
+      { slug: nft.slug, editionId: "ed-1-1", remaining: 0, version: 1 },
+      { slug: nft.slug, editionId: "ed-1-10", remaining: half, version: 1 },
+      { slug: nft.slug, editionId: "ed-1-50", remaining: nft.available, version: 1 },
+      { slug: nft.slug, editionId: "ed-open", remaining: nft.available, version: 1 },
+    ];
+    for (const row of rows) {
+      editionStock[`${row.slug}::${row.editionId}`] = row;
+    }
+  }
   return {
-    nfts: createNfts(),
+    nfts,
     users: [
       { id: MARINA_ID, name: "Marina Alves", email: "marina@kurio.test", passwordHash: MARINA_PASSWORD_HASH },
       { id: RAFAEL_ID, name: "Rafael Costa", email: "rafael@kurio.test", passwordHash: RAFAEL_PASSWORD_HASH },
@@ -186,5 +222,7 @@ export function createSeed(): Database {
       [RAFAEL_ID]: [],
     },
     sessions: {},
+    editionStock,
+    reservations: {},
   };
 }
