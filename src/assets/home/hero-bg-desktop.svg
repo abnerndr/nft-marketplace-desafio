@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="1200" height="450" viewBox="0 0 1200 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="450" fill="#241612"/>
+  <ellipse cx="520" cy="225" rx="360" ry="250" fill="url(#heroDesktopGlow)" opacity="0.18"/>
+  <defs>
+    <radialGradient id="heroDesktopGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(520 225) rotate(90) scale(250 360)">
+      <stop stop-color="#D28A4C" stop-opacity="0.22"/>
+      <stop offset="0.6" stop-color="#D28A4C" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#241612" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

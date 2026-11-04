@@ -39,20 +39,20 @@ function Hero() {
   return (
     <section
       aria-labelledby="hero-title"
-      className="relative flex flex-col justify-center overflow-hidden rounded-[30px] bg-surface-card p-4 lg:h-[450px] lg:rounded-none lg:px-10 lg:py-0"
+      className="relative flex flex-col justify-center overflow-hidden rounded-[30px] bg-surface-card p-4 lg:h-[450px] lg:rounded-none lg:bg-transparent lg:p-0 lg:pl-10"
     >
       <img
         src={heroBg}
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 size-full max-w-none"
+        className="absolute inset-0 size-full max-w-none lg:hidden"
       />
-      <div className="relative flex items-center justify-between gap-2 lg:gap-10">
-        <div className="flex min-w-0 flex-col gap-4 lg:w-[600px] lg:gap-11">
-          <div className="flex flex-col gap-4 lg:gap-8">
+      <div className="relative flex w-full items-center justify-between gap-2 lg:gap-0">
+        <div className="flex min-w-0 flex-col gap-4 lg:w-[600px] lg:items-end lg:gap-11">
+          <div className="flex w-full flex-col gap-4 lg:gap-8">
             <div className="flex flex-col gap-1.5 lg:gap-1">
               <div className="flex flex-col gap-1.5 text-foreground lg:gap-2">
-                <p className="text-xs font-medium leading-4 lg:text-sm lg:tracking-[0.1em]">
+                <p className="text-xs font-medium leading-4 text-kurio-secondary lg:text-sm lg:tracking-[0.1em] lg:text-foreground">
                   Bem-vindo à Kurio
                 </p>
                 <h1 id="hero-title" className="text-lg font-bold lg:text-[43px]">
@@ -74,7 +74,7 @@ function Hero() {
               to="/"
               hash="catalogo"
               search={(prev) => prev}
-              className={`${primaryButton} hidden h-10 w-[140px] text-base lg:inline-flex`}
+              className={`${primaryButton} hidden h-10 w-[140px] pl-7 pr-9 text-base leading-5 lg:inline-flex lg:rounded-[6px]`}
             >
               EXPLORAR
             </Link>
@@ -100,7 +100,7 @@ function Hero() {
             aria-hidden="true"
             width={40}
             height={8}
-            className="hidden lg:block lg:self-end"
+            className="hidden lg:block"
           />
         </div>
         <div className="relative size-[138px] shrink-0 lg:size-[450px]">
@@ -110,7 +110,7 @@ function Hero() {
             width={450}
             height={450}
             decoding="async"
-            className="size-full rounded-2xl object-cover lg:rounded-3xl"
+            className="size-full rounded-2xl object-cover lg:rounded-[24px]"
           />
           <img
             src={artPurple}
@@ -192,7 +192,7 @@ function Pagination({
   onChange: (page: number) => void;
 }) {
   if (pages <= 1) return null;
-  const box = "flex size-[35px] items-center justify-center rounded border";
+  const box = "flex size-[35px] items-center justify-center rounded";
   return (
     <nav aria-label="Paginação" className="flex items-center gap-2 self-end">
       {page > 1 ? (
@@ -200,7 +200,7 @@ function Pagination({
           type="button"
           aria-label="Página anterior"
           onClick={() => onChange(page - 1)}
-          className={`${box} border-border`}
+          className={`${box} border border-border`}
         >
           <img src={pageNext} alt="" width={12} height={7} className="rotate-90" />
         </button>
@@ -214,8 +214,8 @@ function Pagination({
           onClick={() => onChange(number)}
           className={
             number === page
-              ? `${box} border-primary bg-primary text-lg font-bold text-ink`
-              : `${box} border-border text-lg text-foreground hover:border-primary`
+              ? `${box} bg-primary text-lg font-bold leading-4 text-ink`
+              : `${box} border border-border text-lg leading-4 text-foreground hover:border-primary`
           }
         >
           {number}
@@ -226,7 +226,7 @@ function Pagination({
           type="button"
           aria-label="Próxima página"
           onClick={() => onChange(page + 1)}
-          className={`${box} border-border`}
+          className={`${box} border border-border`}
         >
           <img src={pageNext} alt="" width={12} height={7} className="-rotate-90" />
         </button>
@@ -250,7 +250,7 @@ function hasFilters(search: CatalogSearch): boolean {
 }
 
 function Catalog() {
-  const search = useSearch({ from: "/" });
+  const search = useSearch({ strict: false }) as CatalogSearch;
   const navigate = useNavigate({ from: "/" });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const params = toParams(search);
@@ -315,7 +315,7 @@ function Catalog() {
     );
   } else {
     content = (
-      <>
+      <div className="flex flex-col gap-[72px]">
         <div className={GRID}>
           {query.data.items.map((nft) => (
             <NftCard key={nft.id} nft={nft} />
@@ -326,7 +326,7 @@ function Catalog() {
           pages={pages}
           onChange={(page) => go(withPage(search, page), true)}
         />
-      </>
+      </div>
     );
   }
 
@@ -336,60 +336,77 @@ function Catalog() {
         Catálogo de NFTs
       </h2>
       <div className="flex flex-col gap-6 lg:flex-row lg:gap-12">
-      <aside className="flex flex-col gap-6 lg:w-[310px] lg:shrink-0">
-        <Button
-          type="button"
-          aria-expanded={filtersOpen}
-          aria-controls="catalogo-filtros-mobile"
-          className="h-11 gap-2 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary lg:hidden"
-          onClick={() => setFiltersOpen(true)}
-        >
-          <img src={filterIcon} alt="" width={16} height={16} />
-          Filtros
-        </Button>
-        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen} modal={false}>
-          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-[20px] lg:hidden">
-            <SheetHeader>
-              <SheetTitle>Filtros</SheetTitle>
-            </SheetHeader>
-            <div id="catalogo-filtros-mobile" className="mt-4">
-              <Filters search={search} facets={data?.facets} onChange={change} />
+        <aside className="flex flex-col gap-6 lg:w-[310px] lg:shrink-0">
+          <Button
+            type="button"
+            aria-expanded={filtersOpen}
+            aria-controls="catalogo-filtros-mobile"
+            className="h-11 gap-2 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary lg:hidden"
+            onClick={() => setFiltersOpen(true)}
+          >
+            <img src={filterIcon} alt="" width={16} height={16} />
+            Filtros
+          </Button>
+          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen} modal={false}>
+            <SheetContent
+              side="bottom"
+              className="max-h-[85vh] overflow-y-auto rounded-t-[20px] lg:hidden"
+            >
+              <SheetHeader>
+                <SheetTitle>Filtros</SheetTitle>
+              </SheetHeader>
+              <div id="catalogo-filtros-mobile" className="mt-4">
+                <Filters search={search} facets={data?.facets} onChange={change} />
+              </div>
+            </SheetContent>
+          </Sheet>
+          <div id="catalogo-filtros" className="hidden lg:block">
+            <Filters search={search} facets={data?.facets} onChange={change} />
+          </div>
+          <div className="relative hidden h-[470px] flex-col overflow-hidden bg-gradient-to-b from-primary/10 to-primary/[0.03] pt-6 lg:flex">
+            <div className="flex flex-col gap-4">
+              <p className="px-5 text-2xl font-bold leading-8 text-text-accent">NFT EM DESTAQUE</p>
+              <p className="px-5 text-center text-[22px] font-bold leading-4 text-foreground">
+                OFERTA LIMITADA
+              </p>
+              <img
+                src={artPurple}
+                alt="Macaco com chapéu verde e moletom roxo"
+                className="h-[368px] w-full rounded-[22px] object-cover"
+              />
             </div>
-          </SheetContent>
-        </Sheet>
-        <div id="catalogo-filtros" className="hidden lg:block">
-          <Filters search={search} facets={data?.facets} onChange={change} />
-        </div>
-        <div className="relative hidden h-[470px] flex-col gap-4 overflow-hidden bg-gradient-to-b from-primary/10 to-primary/[0.03] pt-6 lg:flex">
-          <p className="px-5 text-2xl font-bold leading-8 text-text-accent">NFT EM DESTAQUE</p>
-          <p className="px-5 text-center text-[22px] font-bold leading-4 text-foreground">
-            OFERTA LIMITADA
-          </p>
-          <img
-            src={artPurple}
-            alt="Macaco com chapéu verde e moletom roxo"
-            className="mt-0 h-[368px] w-full rounded-[22px] object-cover"
-          />
-        </div>
-      </aside>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute top-[299px] left-4 size-[22px] rounded-[7px] border-2 border-[#46a358] opacity-20"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute top-[343px] left-[248px] size-[45px] rounded-full bg-[linear-gradient(145deg,rgba(210,138,76,0.3)_46%,rgba(210,138,76,0)_103%)]"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute top-[105px] left-[38px] size-[15px] rounded-full bg-[linear-gradient(145deg,rgba(210,138,76,0.3)_46%,rgba(210,138,76,0)_103%)]"
+            />
+          </div>
+        </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Tabs value={params.tab} onChange={(tab) => change({ tab })} />
-          <SortSelect value={params.sort} onChange={(sort) => change({ sort })} />
+        <div className="flex min-w-0 flex-1 flex-col gap-8">
+          <div className="relative flex flex-wrap items-center justify-between gap-4">
+            <Tabs value={params.tab} onChange={(tab) => change({ tab })} />
+            <SortSelect value={params.sort} onChange={(sort) => change({ sort })} />
+          </div>
+          <p role="status" className="sr-only">
+            {data ? `${data.total} NFTs encontrados` : "Carregando NFTs"}
+          </p>
+          <div
+            id="catalogo-grade"
+            role="tabpanel"
+            aria-labelledby={`tab-${params.tab}`}
+            className="flex flex-col gap-8 lg:gap-12"
+          >
+            {content}
+          </div>
         </div>
-        <p role="status" className="sr-only">
-          {data ? `${data.total} NFTs encontrados` : "Carregando NFTs"}
-        </p>
-        <div
-          id="catalogo-grade"
-          role="tabpanel"
-          aria-labelledby={`tab-${params.tab}`}
-          className="flex flex-col gap-12"
-        >
-          {content}
-        </div>
-      </div>
       </div>
     </section>
   );
@@ -405,19 +422,19 @@ type PromoProps = {
 
 function Promo({ title, text, image, imageAlt, search }: PromoProps) {
   return (
-    <article className="relative flex min-h-[250px] flex-col overflow-hidden rounded-lg bg-surface-card lg:flex-row lg:items-center">
+    <article className="relative flex min-h-[250px] flex-col overflow-hidden rounded-lg bg-surface-card lg:h-[250px] lg:flex-row lg:items-stretch">
       <img
         src={promoMask}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 size-full max-w-none"
+        className="pointer-events-none absolute inset-0 z-[1] size-full max-w-none"
       />
       <img
         src={image}
         alt={imageAlt}
         className="relative h-[250px] w-full rounded-[18px] object-cover lg:-ml-1 lg:w-[292px] lg:shrink-0"
       />
-      <div className="relative flex flex-1 flex-col items-start gap-4 p-5 lg:items-end lg:pr-[30px] lg:text-right">
+      <div className="relative z-[1] flex flex-1 flex-col items-start gap-4 p-5 lg:items-end lg:justify-center lg:gap-3.5 lg:pr-[30px] lg:pl-6 lg:text-right">
         <h2 className="text-lg font-bold leading-6 text-foreground">
           {title[0]}
           <br />
@@ -488,7 +505,11 @@ const posts = [
 
 function Diary() {
   return (
-    <section id="diario" aria-labelledby="diario-titulo" className="flex scroll-mt-6 flex-col items-center gap-10">
+    <section
+      id="diario"
+      aria-labelledby="diario-titulo"
+      className="flex scroll-mt-6 flex-col items-center gap-10"
+    >
       <header className="flex flex-col items-center gap-3 text-center">
         <h2 id="diario-titulo" className="text-[28px] font-bold text-text-primary">
           Diário da Cunhagem
@@ -497,9 +518,12 @@ function Diary() {
           Histórias, guias e insights para colecionadores sobre o universo da propriedade digital.
         </p>
       </header>
-      <ul className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         {posts.map((post) => (
-          <li key={post.title} className="flex flex-col overflow-hidden rounded-lg bg-surface-card">
+          <li
+            key={post.title}
+            className="flex flex-col overflow-hidden rounded-lg bg-surface-card lg:w-[268px] lg:justify-self-stretch"
+          >
             <img src={post.image} alt="" className="h-[195px] w-full object-cover" />
             <div className="flex flex-1 flex-col gap-2 px-4 pb-4 pt-3">
               <p className="whitespace-pre-wrap text-xs font-medium leading-4 text-text-secondary">
@@ -521,7 +545,7 @@ function Diary() {
 
 export function HomePage() {
   return (
-    <div className="flex flex-col gap-16 py-6 lg:gap-24">
+    <div className="flex flex-col gap-16 py-6 lg:gap-24 lg:pt-8">
       <Hero />
       <Catalog />
       <Promos />

@@ -29,15 +29,15 @@ const tabBase = "text-xl font-medium";
 /** Card de acesso. No desktop segue o modal (500px); no mobile vira página corrida. */
 export function AuthCard({ mode, title, subtitle, redirect, children, onSubmit, footerLink }: AuthCardProps) {
   return (
-    <div className="flex justify-center py-8 sm:py-16">
+    <div className="flex justify-center py-8 sm:py-0">
       <section
         aria-labelledby="auth-title"
-        className="relative flex w-full max-w-[500px] flex-col gap-10 sm:gap-0 sm:border-b-[10px] sm:border-primary sm:bg-surface-card sm:pb-12"
+        className="relative flex w-full max-w-[500px] flex-col gap-10 sm:gap-0 sm:bg-surface-card sm:pb-12"
       >
         <Link
           to="/"
           aria-label="Fechar"
-          className="absolute right-3 top-3 hidden size-[18px] sm:block"
+          className="hidden"
         >
           <img src={close} alt="" width={18} height={18} className="block" />
         </Link>

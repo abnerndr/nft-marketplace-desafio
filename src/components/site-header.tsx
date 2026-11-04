@@ -35,7 +35,7 @@ function isAccountPath(pathname: string): boolean {
 }
 
 /** Com sessão: nome da conta e saída. Sem sessão: o botão Entrar do Figma. */
-function AccountControl() {
+function AccountControl({ tabIndex }: { tabIndex?: number }) {
   const session = useSession();
   const signOut = useLogout();
   const navigate = useNavigate();
@@ -49,6 +49,7 @@ function AccountControl() {
     return (
       <Link
         to="/login"
+        tabIndex={tabIndex}
         className="inline-flex h-[35px] w-[100px] items-center justify-center gap-1 rounded-md bg-primary text-base font-medium text-ink transition-colors hover:bg-text-accent"
       >
         <span className="flex size-5 items-center justify-center">
@@ -63,6 +64,7 @@ function AccountControl() {
     <div className="flex items-center gap-3">
       <Link
         to="/account/profile"
+        tabIndex={tabIndex}
         className="max-w-[140px] truncate text-base font-medium text-foreground hover:text-text-accent"
       >
         {user.name}
@@ -71,6 +73,7 @@ function AccountControl() {
         type="button"
         variant="accent"
         size="sm"
+        tabIndex={tabIndex}
         aria-label="Encerrar sessão"
         disabled={signOut.isPending}
         onClick={() => signOut.mutate(undefined, { onSettled: () => void navigate({ to: "/" }) })}
@@ -83,10 +86,13 @@ function AccountControl() {
 
 export function SiteHeader({ cartCount = 0, compact = false }: SiteHeaderProps) {
   const navigate = useNavigate();
-  const pathname = useLocation({ select: (location) => location.pathname });
+  const location = useLocation();
+  const pathname = location.pathname;
+  const hash = location.hash;
   const { q } = useSearch({ strict: false }) as { q?: string };
-  const homeActive = pathname === "/" || (isAccountPath(pathname) && !isMarketPath(pathname));
-  const marketActive = isMarketPath(pathname);
+  const marketActive = isMarketPath(pathname) || hash === "catalogo";
+  const homeActive =
+    (pathname === "/" && hash !== "catalogo") || (isAccountPath(pathname) && !isMarketPath(pathname));
   const [searchOpen, setSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -119,42 +125,61 @@ export function SiteHeader({ cartCount = 0, compact = false }: SiteHeaderProps) 
   if (compact) {
     return (
       <header className="w-full pt-4">
-        <form
-          role="search"
-          onSubmit={handleSearch}
-          className="mx-auto flex w-full max-w-[1200px] items-stretch gap-2 px-6"
-        >
-          <label className="flex h-[45px] min-w-0 flex-1 items-center gap-2 rounded-[10px] bg-surface-card px-3">
-            <img src={searchIcon} alt="" width={22} height={22} />
-            <Input
-              key={q ?? ""}
-              type="search"
-              name="q"
-              defaultValue={q ?? ""}
-              placeholder="Explorar coleções"
-              aria-label="Explorar coleções"
-              className="h-auto border-0 bg-transparent px-0 text-sm font-bold text-kurio-secondary placeholder:text-kurio-secondary focus-visible:outline-none"
-            />
-          </label>
-          <Button
-            type="button"
-            aria-label="Ir ao catálogo e filtros"
-            className="size-[45px] shrink-0 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary p-0"
-            onClick={() => {
-              void navigate({ to: "/", hash: "catalogo" });
-            }}
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3 px-5 sm:px-6 lg:px-0">
+          <div className="flex items-center justify-between">
+            <Link to="/" tabIndex={-1} className="py-1 text-sm font-bold tracking-[0.1em] text-foreground">
+              KURIO
+            </Link>
+            <div className="flex items-center gap-4">
+              <Link to="/cart" tabIndex={-1} aria-label="Carrinho" className="relative block">
+                <img src={cartIcon} alt="" width={22} height={22} />
+                {cartCount > 0 ? (
+                  <span className="absolute top-0 left-[14px] flex size-4 items-center justify-center">
+                    <img src={badge} alt="" width={18} height={18} className="absolute max-w-none" />
+                    <span className="relative text-[10px] font-medium text-ink">{cartCount}</span>
+                  </span>
+                ) : null}
+              </Link>
+              <AccountControl tabIndex={-1} />
+            </div>
+          </div>
+          <form
+            role="search"
+            onSubmit={handleSearch}
+            className="flex w-full items-stretch gap-2"
           >
-            <img src={filterIcon} alt="" width={22} height={22} />
-          </Button>
-        </form>
+            <label className="flex h-[45px] min-w-0 flex-1 items-center gap-2 rounded-[10px] bg-surface-card px-3">
+              <img src={searchIcon} alt="" width={22} height={22} />
+              <Input
+                key={q ?? ""}
+                type="search"
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Explorar coleções"
+                aria-label="Explorar coleções"
+                className="h-auto border-0 bg-transparent px-0 text-sm font-bold text-kurio-secondary placeholder:text-kurio-secondary focus-visible:outline-none"
+              />
+            </label>
+            <Button
+              type="button"
+              aria-label="Ir ao catálogo e filtros"
+              className="size-[45px] shrink-0 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary p-0"
+              onClick={() => {
+                void navigate({ to: "/", hash: "catalogo" });
+              }}
+            >
+              <img src={filterIcon} alt="" width={22} height={22} />
+            </Button>
+          </form>
+        </div>
       </header>
     );
   }
 
   return (
-    <header className="w-full">
-      <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-start justify-between gap-x-10 gap-y-4 px-6">
-        <Link to="/" className="py-2 text-sm font-bold tracking-[0.1em] text-foreground">
+    <header className="w-full pt-6">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-start justify-between gap-x-10 gap-y-4 px-5 sm:px-6 lg:flex-nowrap lg:px-0">
+        <Link to="/" className="py-2 text-sm font-bold tracking-[0.1em] text-foreground transition-colors hover:text-text-accent">
           KURIO
         </Link>
 
@@ -197,7 +222,7 @@ export function SiteHeader({ cartCount = 0, compact = false }: SiteHeaderProps) 
           </Link>
         </nav>
 
-        <div className="flex min-h-[35px] items-center gap-5 sm:gap-7">
+        <div className="flex min-h-[35px] shrink-0 items-center gap-5 sm:gap-7">
           <form
             role="search"
             onSubmit={handleSearch}
@@ -243,9 +268,11 @@ export function SiteHeader({ cartCount = 0, compact = false }: SiteHeaderProps) 
           <AccountControl />
         </div>
       </div>
-      <div className="mx-auto w-full max-w-[1200px] px-6">
-        <img src={divider} alt="" width={1200} height={0.3} className="block h-px w-full max-w-none" />
-      </div>
+      {!marketActive ? (
+        <div className="mx-auto w-full max-w-[1200px] px-5 sm:px-6 lg:px-0">
+          <img src={divider} alt="" width={1200} height={0.3} className="block h-px w-full max-w-none" />
+        </div>
+      ) : null}
     </header>
   );
 }

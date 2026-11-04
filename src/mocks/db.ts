@@ -1,10 +1,10 @@
 import { fullKurioReset } from "./reset";
 import { applyScenario, getScenario, isScenarioId, type ScenarioId } from "./scenarios";
-import { createSeed, type Database } from "./seed";
+import { createSeed, SEED_VERSION, type Database } from "./seed";
 
 export const STORAGE_KEY = "kurio.mock";
 
-type Persisted = { scenario: ScenarioId; db: Database };
+type Persisted = { scenario: ScenarioId; db: Database; seedVersion?: number };
 
 let database: Database | null = null;
 
@@ -23,7 +23,11 @@ function seedForScenario(): Database {
 
 function persist(): void {
   if (!database) return;
-  const payload: Persisted = { scenario: getScenario(), db: database };
+  const payload: Persisted = {
+    scenario: getScenario(),
+    db: database,
+    seedVersion: SEED_VERSION,
+  };
   try {
     storage()?.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch {
@@ -37,7 +41,13 @@ function load(): Persisted | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<Persisted>;
     if (!parsed.db || !isScenarioId(parsed.scenario)) return null;
-    return { scenario: parsed.scenario, db: parsed.db };
+    // Seed antigo (placeholders SVG, etc.): descarta e recria.
+    if (parsed.seedVersion !== SEED_VERSION) return null;
+    return {
+      scenario: parsed.scenario,
+      db: parsed.db,
+      seedVersion: parsed.seedVersion,
+    };
   } catch {
     return null;
   }

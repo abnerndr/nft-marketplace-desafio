@@ -121,8 +121,8 @@
 .range-thumb::-webkit-slider-thumb {
     appearance: none;
     pointer-events: auto;
-    width: 24px;
-    height: 24px;
+    width: 15px;
+    height: 15px;
     border-radius: 9999px;
     background: var(--color-primary);
     border: 3px solid var(--color-ink);
@@ -131,8 +131,8 @@
 }
 .range-thumb::-moz-range-thumb {
     pointer-events: auto;
-    width: 24px;
-    height: 24px;
+    width: 15px;
+    height: 15px;
     border-radius: 9999px;
     background: var(--color-primary);
     border: 3px solid var(--color-ink);

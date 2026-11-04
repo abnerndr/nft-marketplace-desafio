@@ -392,10 +392,10 @@ function RelatedNfts({ nft }: { nft: NftDetail }) {
         </h2>
         <img src={lineSection} alt="" aria-hidden="true" className="h-[0.3px] w-full" />
       </div>
-      <ul className="flex gap-6 overflow-x-auto pb-2">
+      <ul className="flex gap-6 overflow-x-auto pb-2 lg:justify-between">
         {items.map((item) => (
           <li key={item.id} className="shrink-0">
-            <NftCard nft={item} />
+            <NftCard nft={item} compact />
           </li>
         ))}
       </ul>

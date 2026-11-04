@@ -38,7 +38,8 @@ export function AuthDesktopDialog({ title, description, redirect, children }: Au
       }}
     >
       <DialogContent
-        className="max-h-[90vh] w-[min(100%,500px)] overflow-y-auto border-b-[10px] border-primary bg-surface-card p-0"
+        className="max-h-[90vh] w-[min(100%,500px)] overflow-y-auto rounded-none border-b-[10px] border-primary bg-surface-card p-0"
+        overlayClassName="bg-transparent"
         showClose
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>

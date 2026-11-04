@@ -5,45 +5,50 @@ import { readApiError } from "@/shared/api/errors";
 import { formatEth } from "@/shared/domain/money";
 import type { NftSummary } from "@/shared/domain/contracts";
 
-export function NftCard({ nft }: { nft: NftSummary }) {
+export function NftCard({ nft, compact = false }: { nft: NftSummary; compact?: boolean }) {
   const favorite = useFavorite(nft.slug);
   return (
     <article
       aria-label={nft.title}
-      className="relative flex w-full flex-col gap-2 sm:w-[258px] sm:gap-3"
+      className={`group relative flex w-full flex-col gap-2 sm:w-[258px] sm:gap-3 ${compact ? "lg:w-[219px]" : ""}`}
     >
-      <div className="flex h-[200px] items-start justify-center rounded-[20px] bg-gradient-to-br from-surface-card to-[#2F1D15] px-1 pt-3 sm:h-[300px] sm:rounded-none sm:bg-surface-card sm:bg-none sm:pt-6">
+      <div className={`relative flex h-[200px] items-center justify-center overflow-hidden rounded-[20px] bg-gradient-to-br from-surface-card to-[#2F1D15] px-1 sm:h-[300px] sm:rounded-none sm:bg-surface-card sm:bg-none sm:px-1 sm:pt-6 sm:pb-7 ${compact ? "lg:h-[255px] lg:py-0" : ""}`}>
         <img
           src={nft.imageUrl}
           alt={nft.title}
           loading="lazy"
           width={250}
           height={250}
-          className="size-[168px] rounded-2xl object-cover sm:size-[250px] sm:rounded-[15px]"
+          className={`size-[168px] rounded-2xl object-cover sm:size-[250px] sm:rounded-[15px] ${compact ? "lg:size-[211px]" : ""}`}
         />
       </div>
       <button
         type="button"
-        aria-label={favorite.isFavorite ? `Remover ${nft.title} dos favoritos` : `Favoritar ${nft.title}`}
+        aria-label={
+          favorite.isFavorite ? `Remover ${nft.title} dos favoritos` : `Favoritar ${nft.title}`
+        }
         aria-pressed={favorite.isFavorite}
         onClick={favorite.toggle}
         disabled={favorite.isPending}
-        className={`absolute right-3 top-3 z-10 flex size-[35px] items-center justify-center rounded-full border border-border transition-colors disabled:opacity-60 ${
+        className={`absolute right-3 top-3 z-10 flex size-[35px] items-center justify-center rounded-full border border-border transition-colors disabled:opacity-60 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100 ${
           favorite.isFavorite ? "bg-primary/30" : "bg-[#2F1D15]"
         }`}
       >
         <img src={heartSmall} alt="" />
       </button>
       {favorite.isError ? (
-        <p role="alert" className="absolute top-[48px] right-2 left-2 z-10 rounded bg-surface-card/95 p-2 text-xs text-text-coral">
+        <p
+          role="alert"
+          className="absolute top-[48px] right-2 left-2 z-10 rounded bg-surface-card/95 p-2 text-xs text-text-coral"
+        >
           {readApiError(favorite.error).message}{" "}
           <button type="button" className="underline" onClick={favorite.retry}>
             Tentar novamente
           </button>
         </p>
       ) : null}
-      <div className="flex flex-col gap-[6px] px-2 sm:gap-3 sm:px-0">
-        <h3 className="text-[15px] font-normal leading-4 text-foreground sm:text-base">
+      <div className="flex flex-col gap-[6px] px-2 sm:gap-1.5 sm:px-0">
+        <h3 className={`text-[15px] font-normal leading-4 text-foreground sm:text-base ${compact ? "lg:text-[15px]" : ""}`}>
           <Link
             to="/nfts/$slug"
             params={{ slug: nft.slug }}
@@ -52,7 +57,7 @@ export function NftCard({ nft }: { nft: NftSummary }) {
             {nft.title}
           </Link>
         </h3>
-        <p className="flex items-center gap-3 text-base font-bold leading-4 text-text-accent sm:text-lg">
+        <p className={`flex items-center gap-3 text-base font-bold leading-4 text-text-accent sm:text-lg ${compact ? "lg:text-base" : ""}`}>
           <span>{formatEth(nft.priceEth)}</span>
           {nft.compareAtEth ? (
             <s

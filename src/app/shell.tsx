@@ -7,6 +7,7 @@ import { useRealtime } from "@/features/realtime/use-realtime";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { HomePage } from "@/features/catalog/home-page";
 
 function isAuthRoute(pathname: string): boolean {
   return pathname === "/login" || pathname === "/register";
@@ -33,18 +34,25 @@ export function AppShell({ children }: { children: ReactNode }) {
         ) : null}
       </div>
       <PriceNotices />
+      {auth ? (
+        <div className="mx-auto hidden w-full max-w-[1200px] lg:block" aria-hidden="true" inert>
+          <HomePage />
+        </div>
+      ) : null}
       <main
         className={
           auth
-            ? "mx-auto w-full max-w-[1200px] flex-1 px-6"
-            : "mx-auto w-full max-w-[1200px] flex-1 px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-8"
+            ? "mx-auto w-full max-w-[1200px] flex-1 px-5 sm:px-6 lg:px-0"
+            : "mx-auto w-full max-w-[1200px] flex-1 px-5 sm:px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:px-0 lg:pb-8"
         }
       >
         {children}
       </main>
-      <div className="hidden lg:block">
-        <SiteFooter />
-      </div>
+      {!pathname.startsWith("/account/") ? (
+        <div className="hidden lg:block">
+          <SiteFooter />
+        </div>
+      ) : null}
       {!auth ? <MobileNavigation /> : null}
       <ScenarioPanel />
     </div>

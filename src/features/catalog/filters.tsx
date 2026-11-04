@@ -54,7 +54,7 @@ function OptionList<T extends string>({
           return (
             <li key={option.id}>
               <label
-                className={`flex min-h-10 cursor-pointer items-center justify-between gap-3 text-[15px] ${
+                className={`relative flex min-h-10 cursor-pointer items-center justify-between gap-3 text-[15px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary ${
                   checked ? "text-text-accent" : "text-text-secondary"
                 }`}
               >
@@ -63,7 +63,7 @@ function OptionList<T extends string>({
                     type="checkbox"
                     checked={checked}
                     onChange={() => onToggle(option.id)}
-                    className="size-4 shrink-0 accent-primary"
+                    className="size-4 shrink-0 accent-primary lg:absolute lg:inset-0 lg:z-10 lg:h-full lg:w-full lg:cursor-pointer lg:opacity-0"
                   />
                   {option.label}
                 </span>

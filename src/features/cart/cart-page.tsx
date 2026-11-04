@@ -104,7 +104,7 @@ function DesktopRow(props: RowProps) {
           height={70}
           className="size-[70px] shrink-0 rounded-md object-cover"
         />
-        <div className="flex w-[154px] flex-col gap-1.5 leading-4">
+        <div className="flex w-[180px] shrink-0 flex-col gap-0.5 leading-4">
           <Link
             to="/nfts/$slug"
             params={{ slug: line.slug }}
@@ -116,7 +116,7 @@ function DesktopRow(props: RowProps) {
           <p className="truncate text-sm text-kurio-secondary">Edição: {line.editionLabel}</p>
         </div>
       </div>
-      <p className="w-[77px] text-base font-bold leading-4 text-text-secondary">{formatEth(line.priceEth)}</p>
+      <p className="w-[77px] whitespace-nowrap text-base font-bold leading-4 text-text-secondary">{formatEth(line.priceEth)}</p>
       <DesktopStepper {...props} />
       <p className="w-[87px] text-base font-bold leading-4 text-text-accent">
         {formatEth(mulEth(line.priceEth, line.quantity))}
@@ -253,7 +253,7 @@ function Summary({ lines, isGuest, couponCode }: { lines: CartLine[]; isGuest: b
           <button
             type="submit"
             disabled={apply.isPending || draft.trim() === ""}
-            className="h-[50px] w-[97px] shrink-0 rounded-[40px] bg-gradient-to-r from-primary/55 to-primary text-[15px] font-bold leading-4 text-foreground disabled:cursor-not-allowed disabled:opacity-60 lg:h-10 lg:w-[102px] lg:rounded-none lg:rounded-r-[3px] lg:bg-primary lg:bg-none lg:text-ink"
+            className="h-[50px] w-[97px] shrink-0 rounded-[40px] bg-gradient-to-r from-primary/55 to-primary text-[15px] font-bold leading-4 text-foreground disabled:cursor-not-allowed disabled:opacity-60 lg:h-10 lg:w-[102px] lg:rounded-none lg:rounded-r-[3px] lg:bg-primary lg:bg-none lg:text-ink lg:disabled:opacity-100"
           >
             Aplicar
           </button>
@@ -295,11 +295,11 @@ function Summary({ lines, isGuest, couponCode }: { lines: CartLine[]; isGuest: b
       <div className="flex flex-col gap-3 text-[15px] leading-4 text-foreground">
         <Row label="Subtotal" value={totals ? formatEth(totals.subtotalEth) : pending} className="[&_span:last-child]:text-base lg:[&_span:last-child]:text-lg" />
         <Row label="Desconto do lançamento" value={totals ? `(-) ${formatEth(totals.discountEth)}` : pending} />
-        <div className="flex flex-col items-end">
+        <div className="flex flex-col items-end lg:gap-3">
           <Row label="Taxa de rede" value={totals ? formatEth(totals.networkFeeEth) : pending} className="w-full [&_span:last-child]:text-base lg:[&_span:last-child]:text-lg" />
           <p className="text-xs leading-4 text-text-accent">Taxa estimada</p>
         </div>
-        <div className="flex items-start justify-between font-bold">
+        <div className="flex items-start justify-between font-bold lg:mt-3">
           <span className="text-base">Total</span>
           <span className="text-lg text-text-accent">{totals ? formatEth(totals.totalEth) : (pending ?? <SkeletonBar />)}</span>
         </div>
@@ -343,10 +343,10 @@ function RelatedNfts({ exclude }: { exclude: Set<string> }) {
         </h2>
         <img src={lineSection} alt="" aria-hidden="true" className="h-[0.3px] w-full" />
       </div>
-      <ul className="flex gap-6 overflow-x-auto pb-2">
+      <ul className="flex gap-6 overflow-x-auto pb-2 lg:justify-between">
         {items.map((item) => (
           <li key={item.id} className="shrink-0">
-            <NftCard nft={item} />
+            <NftCard nft={item} compact />
           </li>
         ))}
       </ul>
