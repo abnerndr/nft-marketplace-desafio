@@ -1,8 +1,15 @@
 import { toSocketIo } from "@mswjs/socket.io-binding";
 import { ws } from "msw";
 import { readGuestItems } from "@/features/cart/guest-cart";
-import { nftUpdatedSchema, socketUrl, type NftUpdatedEvent, type OrderUpdatedEvent } from "@/features/realtime/socket";
+import {
+  nftUpdatedSchema,
+  orderUpdatedSchema,
+  socketUrl,
+  type NftUpdatedEvent,
+  type OrderUpdatedEvent,
+} from "@/features/realtime/socket";
 import { getDatabase, saveDatabase } from "./db";
+import { commitInventory, releaseInventory } from "./inventory";
 import { applyPriceChange, nftVersionOf, raisedPrice } from "./nft-version";
 import { getScenario } from "./scenarios";
 
@@ -155,6 +162,28 @@ export function emitSocketEvent(type: string, payload?: unknown): void {
       });
     }
   }
+
+  if (type === "order.updated") {
+    const parsed = orderUpdatedSchema.safeParse(payload);
+    if (parsed.success) {
+      const db = getDatabase();
+      const record = db.orders.find((order) => order.id === parsed.data.resource.id);
+      // Só avança pending → confirmed|declined; não regride terminal. Task 6 formaliza transitionMockOrder.
+      if (record && record.status === "pending") {
+        const next = parsed.data.resource.status;
+        if (next === "confirmed" || next === "declined") {
+          record.status = next;
+          record.txRef = parsed.data.resource.txRef ?? record.txRef;
+          // Estoque acompanha o evento; limpeza do carrinho fica no confirm HTTP (GET/POST)
+          // para não impedir marcadores de teste que ainda leem o carrinho (`emit("nft.updated")`).
+          if (next === "confirmed") commitInventory(record.id);
+          else releaseInventory(record.id);
+          saveDatabase();
+        }
+      }
+    }
+  }
+
   send(type, payload);
 }
 

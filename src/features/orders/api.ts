@@ -8,9 +8,12 @@ import { api } from "@/shared/api/client";
 import { orderSchema, type CartLine, type Order, type Quote } from "@/shared/domain/contracts";
 import {
   clearOrderAttempt,
+  markOrderAttemptPending,
+  ORDER_OUTCOME_UNKNOWN,
   readOrderAttempt,
   resolveOrderAttempt,
   sameOrderAttempt,
+  writeOrderAttempt,
   type OrderAttempt,
 } from "./idempotency";
 
@@ -55,50 +58,97 @@ function outcomeUnknown(error: unknown): boolean {
   return !error.response || error.response.status >= 500;
 }
 
-function forgetAttempt(attempt: { current: OrderAttempt | null }): void {
+function forgetAttempt(attempt: { current: OrderAttempt | null }, userId?: string | null): void {
+  const id = userId ?? attempt.current?.userId;
   attempt.current = null;
-  clearOrderAttempt();
+  clearOrderAttempt(id);
 }
 
 /**
- * Confirma a compra. Antes de criar a tentativa pede uma cotação nova com a revisão mostrada:
- * se a `version` mudou, devolve `changed` e não envia o pedido. Cada tentativa tem um UUID que
- * fica no `sessionStorage` enquanto o resultado é incerto, então o retry depois de timeout ou um
- * reload de `/checkout` reenvia a mesma chave e o mesmo corpo. Corpo diferente (outra carteira,
- * outra revisão) é outra tentativa, com chave nova.
+ * Reenvia exatamente corpo/chave da tentativa original. Não valida cotação/carteira atuais —
+ * o servidor devolve o pedido já gravado via idempotência.
+ */
+export async function recoverOrderAttempt(attempt: OrderAttempt): Promise<Order> {
+  const identity = captureSessionIdentity();
+  if (identity.userId !== attempt.userId) {
+    throw new CancelledError({ silent: true });
+  }
+  try {
+    const { data } = await api.post("/orders", attempt.body, {
+      headers: { "Idempotency-Key": attempt.key, "Content-Type": "application/json" },
+    });
+    if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
+    const order = orderSchema.parse(data);
+    if (order.status === "pending") {
+      writeOrderAttempt(markOrderAttemptPending(attempt, order.id));
+    } else {
+      clearOrderAttempt(attempt.userId);
+    }
+    return order;
+  } catch (error) {
+    if (error instanceof CancelledError) throw error;
+    // Timeout de recuperação preserva a tentativa desconhecida.
+    if (!outcomeUnknown(error)) {
+      clearOrderAttempt(attempt.userId);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Confirma a compra. Enquanto houver tentativa com resultado desconhecido, um corpo diferente
+ * não gera chave nova — lança `order_outcome_unknown` para forçar `recoverOrderAttempt`.
  */
 export async function submitPlaceOrder(
   attempt: { current: OrderAttempt | null },
   { walletId, couponCode, lines, reviewed }: PlaceOrderInput,
 ): Promise<PlaceOrderResult> {
   const body = JSON.stringify({ walletId, couponCode, quoteVersion: reviewed.version });
-
   const identity = captureSessionIdentity();
-  if (!attempt.current || !sameOrderAttempt(attempt.current.body, body)) {
+  if (!identity.userId) throw new CancelledError({ silent: true });
+
+  const stored = readOrderAttempt(identity.userId) ?? attempt.current;
+  if (stored && stored.userId === identity.userId && !sameOrderAttempt(stored.body, body)) {
+    attempt.current = stored;
+    throw new Error(ORDER_OUTCOME_UNKNOWN);
+  }
+
+  if (!stored || !sameOrderAttempt(stored.body, body)) {
     const fresh = await requestQuote(toQuoteItems(lines), couponCode, undefined, reviewed.version);
     if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
     if (fresh.version !== reviewed.version) return { kind: "changed", quote: fresh };
-    attempt.current = resolveOrderAttempt(body);
+    attempt.current = resolveOrderAttempt(identity.userId, body);
+  } else {
+    attempt.current = stored;
   }
 
-  if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
+  if (!isCurrentSession(identity) || !attempt.current) throw new CancelledError({ silent: true });
   try {
-    const { data } = await api.post("/orders", body, {
+    const { data } = await api.post("/orders", attempt.current.body, {
       headers: { "Idempotency-Key": attempt.current.key, "Content-Type": "application/json" },
     });
     if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
-    forgetAttempt(attempt);
-    return { kind: "placed", order: orderSchema.parse(data) };
+    const order = orderSchema.parse(data);
+    if (order.status === "pending") {
+      attempt.current = markOrderAttemptPending(attempt.current, order.id);
+    } else {
+      forgetAttempt(attempt, identity.userId);
+    }
+    return { kind: "placed", order };
   } catch (error) {
     if (error instanceof CancelledError) throw error;
-    if (!outcomeUnknown(error)) forgetAttempt(attempt);
+    if (!outcomeUnknown(error)) forgetAttempt(attempt, identity.userId);
+    else if (attempt.current) {
+      writeOrderAttempt({ ...attempt.current, state: "unknown" });
+    }
     throw error;
   }
 }
 
 export function usePlaceOrder() {
   const client = useQueryClient();
-  const attempt = useRef<OrderAttempt | null>(readOrderAttempt());
+  const userId = useSession().data?.id;
+  const attempt = useRef<OrderAttempt | null>(readOrderAttempt(userId));
 
   return useMutation({
     mutationFn: (input: PlaceOrderInput) => submitPlaceOrder(attempt, input),

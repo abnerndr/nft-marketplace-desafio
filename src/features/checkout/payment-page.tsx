@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import backArrow from "@/assets/cart/back-arrow.svg";
 import backCircle from "@/assets/cart/back-circle.svg";
 import arrowDown from "@/assets/checkout/arrow-down.svg";
@@ -14,7 +14,8 @@ import walletIcon from "@/assets/checkout/wallet.svg";
 import { useSession } from "@/features/auth/session";
 import { useCart } from "@/features/cart/api";
 import { checkoutQuoteQuery } from "@/features/cart/quote";
-import { usePlaceOrder } from "@/features/orders/api";
+import { recoverOrderAttempt, usePlaceOrder } from "@/features/orders/api";
+import { clearOrderAttempt, ORDER_OUTCOME_UNKNOWN, readOrderAttempt } from "@/features/orders/idempotency";
 import { useAddWallet, useWalletAction, useWallets } from "@/features/wallets/api";
 import {
   NETWORK_LABELS,
@@ -458,6 +459,8 @@ function EmptyCheckout() {
 
 export function PaymentPage() {
   const navigate = useNavigate();
+  const session = useSession();
+  const userId = session.data?.id;
   const cart = useCart();
   const quote = useCheckoutQuote(cart.lines, cart.couponCode);
   const wallets = useWallets();
@@ -468,16 +471,97 @@ export function PaymentPage() {
   const [pickedId, setPickedId] = useState<string | null>(null);
   /** Cotação que o usuário aceitou depois de uma mudança de valores. */
   const [accepted, setAccepted] = useState<Quote | null>(null);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const recoveryStarted = useRef(false);
 
   const walletList = wallets.data ?? [];
   const selected = walletList.find((wallet) => wallet.id === pickedId) ?? walletList.find((wallet) => wallet.connected) ?? null;
   const reviewed = accepted ?? quote.data ?? null;
   const changed = place.data?.kind === "changed" ? place.data.quote : null;
-  const placeError = place.isError ? readApiError(place.error) : null;
-  const canConfirm = selected?.connected === true && reviewed !== null && changed === null && cart.lines.length > 0;
+  const unknownBlocked =
+    place.isError && place.error instanceof Error && place.error.message === ORDER_OUTCOME_UNKNOWN;
+  const placeError = place.isError && !unknownBlocked ? readApiError(place.error) : null;
+  const activeAttempt = userId ? readOrderAttempt(userId) : null;
+  const canConfirm =
+    (Boolean(activeAttempt) || (selected?.connected === true && reviewed !== null && changed === null)) &&
+    cart.lines.length > 0 &&
+    !recovering;
+
+  useEffect(() => {
+    if (!userId || recoveryStarted.current) return;
+    const attempt = readOrderAttempt(userId);
+    if (!attempt) return;
+    recoveryStarted.current = true;
+    setRecovering(true);
+    setRecoveryError(null);
+    void recoverOrderAttempt(attempt)
+      .then((order) => {
+        if (order.status === "declined") {
+          clearOrderAttempt(userId);
+          setRecovering(false);
+          return;
+        }
+        void navigate({ to: "/orders/$orderId", params: { orderId: order.id } });
+      })
+      .catch(() => {
+        setRecoveryError("Não foi possível recuperar o pedido anterior. Tente de novo.");
+        setRecovering(false);
+        recoveryStarted.current = false;
+      });
+  }, [userId, navigate]);
+
+  function retryRecovery() {
+    if (!userId) return;
+    const attempt = readOrderAttempt(userId);
+    if (!attempt) {
+      setRecoveryError(null);
+      return;
+    }
+    recoveryStarted.current = true;
+    setRecovering(true);
+    setRecoveryError(null);
+    void recoverOrderAttempt(attempt)
+      .then((order) => {
+        if (order.status === "declined") {
+          clearOrderAttempt(userId);
+          setRecovering(false);
+          return;
+        }
+        void navigate({ to: "/orders/$orderId", params: { orderId: order.id } });
+      })
+      .catch(() => {
+        setRecoveryError("Não foi possível recuperar o pedido anterior. Tente de novo.");
+        setRecovering(false);
+        recoveryStarted.current = false;
+      });
+  }
 
   function confirmPurchase() {
-    if (!selected || !reviewed || place.isPending || submitting.current) return;
+    if (place.isPending || submitting.current || recovering) return;
+    const pendingAttempt = userId ? readOrderAttempt(userId) : null;
+    if (pendingAttempt) {
+      submitting.current = true;
+      setRecovering(true);
+      void recoverOrderAttempt(pendingAttempt)
+        .then((order) => {
+          if (order.status === "declined") {
+            clearOrderAttempt(userId);
+            setRecovering(false);
+            return;
+          }
+          void navigate({ to: "/orders/$orderId", params: { orderId: order.id } });
+        })
+        .catch(() => {
+          setRecoveryError("Sem resposta do servidor. Toque em confirmar de novo: o pedido não será cobrado duas vezes.");
+          setRecovering(false);
+        })
+        .finally(() => {
+          submitting.current = false;
+        });
+      return;
+    }
+    if (!selected || !reviewed) return;
     submitting.current = true;
     place.mutate(
       { walletId: selected.id, couponCode: cart.couponCode, lines: cart.lines, reviewed },
@@ -569,6 +653,24 @@ export function PaymentPage() {
               </section>
             ) : null}
 
+            {recovering ? (
+              <p role="status" className="text-sm leading-[22px] text-text-secondary">
+                Recuperando pedido anterior…
+              </p>
+            ) : null}
+            {recoveryError ? (
+              <p role="alert" className="text-sm leading-[22px] text-text-coral">
+                {recoveryError}{" "}
+                <button type="button" className="underline" onClick={retryRecovery}>
+                  Tentar sincronizar novamente
+                </button>
+              </p>
+            ) : null}
+            {unknownBlocked ? (
+              <p role="alert" className="text-sm leading-[22px] text-text-coral">
+                Há um pedido anterior sem confirmação. Recuperamos a tentativa original antes de aceitar uma nova.
+              </p>
+            ) : null}
             {placeError ? (
               <p role="alert" data-code={placeError.code} className="text-sm leading-[22px] text-text-coral">
                 {placeError.code === "unknown"
@@ -576,19 +678,21 @@ export function PaymentPage() {
                   : placeError.message}
               </p>
             ) : null}
-            {selected && !selected.connected ? (
+            {selected && !selected.connected && !activeAttempt ? (
               <p className="text-xs leading-4 text-text-secondary">Conecte {selected.label} para confirmar a compra.</p>
             ) : null}
-            {!selected ? <p className="text-xs leading-4 text-text-secondary">Conecte uma carteira para confirmar a compra.</p> : null}
+            {!selected && !activeAttempt ? (
+              <p className="text-xs leading-4 text-text-secondary">Conecte uma carteira para confirmar a compra.</p>
+            ) : null}
 
             <button
               type="button"
-              disabled={!canConfirm || place.isPending}
-              aria-busy={place.isPending}
+              disabled={!canConfirm || place.isPending || recovering}
+              aria-busy={place.isPending || recovering}
               onClick={confirmPurchase}
               className={primaryButton}
             >
-              {place.isPending ? "Confirmando…" : "Confirmar compra"}
+              {recovering || place.isPending ? "Confirmando…" : "Confirmar compra"}
             </button>
           </aside>
         </div>

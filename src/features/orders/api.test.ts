@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { setSessionIdentity } from "@/features/auth/session-identity";
 import { api } from "@/shared/api/client";
 import type { Quote } from "@/shared/domain/contracts";
-import { ORDER_ATTEMPT_KEY, readOrderAttempt, resolveOrderAttempt } from "./idempotency";
-import { submitPlaceOrder, type PlaceOrderInput } from "./api";
+import { ORDER_ATTEMPT_KEY_PREFIX, ORDER_OUTCOME_UNKNOWN, readOrderAttempt, resolveOrderAttempt } from "./idempotency";
+import { recoverOrderAttempt, submitPlaceOrder, type PlaceOrderInput } from "./api";
 
 const reviewed: Quote = {
   subtotalEth: "1",
@@ -44,7 +44,7 @@ function memoryStorage(): Storage {
   };
 }
 
-describe("submitPlaceOrder", () => {
+describe("submitPlaceOrder / recoverOrderAttempt", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -53,9 +53,9 @@ describe("submitPlaceOrder", () => {
   it("resposta tardia não devolve pedido colocado nem apaga a tentativa guardada", async () => {
     vi.stubGlobal("sessionStorage", memoryStorage());
     const body = JSON.stringify({ walletId: input.walletId, couponCode: input.couponCode, quoteVersion: reviewed.version });
-    const stored = resolveOrderAttempt(body);
-    const attempt = { current: stored };
     setSessionIdentity("user-marina");
+    const stored = resolveOrderAttempt("user-marina", body);
+    const attempt = { current: stored };
     vi.spyOn(api, "post").mockImplementation(async () => {
       setSessionIdentity("user-rafael");
       return { data: placed, status: 200, statusText: "OK", headers: {}, config: {} } as never;
@@ -64,7 +64,39 @@ describe("submitPlaceOrder", () => {
     await expect(submitPlaceOrder(attempt, input)).rejects.toBeInstanceOf(CancelledError);
 
     expect(attempt.current).toEqual(stored);
-    expect(readOrderAttempt()).toEqual(stored);
-    expect(sessionStorage.getItem(ORDER_ATTEMPT_KEY)).toContain(stored.key);
+    expect(readOrderAttempt("user-marina")).toEqual(stored);
+    expect(sessionStorage.getItem(`${ORDER_ATTEMPT_KEY_PREFIX}user-marina`)).toContain(stored.key);
+  });
+
+  it("corpo diferente com tentativa desconhecida lança order_outcome_unknown", async () => {
+    vi.stubGlobal("sessionStorage", memoryStorage());
+    setSessionIdentity("user-marina");
+    const bodyA = JSON.stringify({ walletId: "wallet-marina-1", couponCode: null, quoteVersion: 1 });
+    const first = resolveOrderAttempt("user-marina", bodyA);
+    const attempt = { current: first };
+    const bodyBInput: PlaceOrderInput = {
+      ...input,
+      walletId: "wallet-marina-2",
+    };
+    await expect(submitPlaceOrder(attempt, bodyBInput)).rejects.toThrow(ORDER_OUTCOME_UNKNOWN);
+    expect(readOrderAttempt("user-marina")?.key).toBe(first.key);
+  });
+
+  it("recoverOrderAttempt reenvia a mesma chave e limpa quando confirmado", async () => {
+    vi.stubGlobal("sessionStorage", memoryStorage());
+    setSessionIdentity("user-marina");
+    const body = JSON.stringify({ walletId: input.walletId, couponCode: input.couponCode, quoteVersion: reviewed.version });
+    const attempt = resolveOrderAttempt("user-marina", body);
+    const confirmed = { ...placed, status: "confirmed", txRef: "0xabc" };
+    const post = vi.spyOn(api, "post").mockResolvedValue({ data: confirmed, status: 200, statusText: "OK", headers: {}, config: {} } as never);
+
+    const order = await recoverOrderAttempt(attempt);
+    expect(order.id).toBe("order-1");
+    expect(post).toHaveBeenCalledWith(
+      "/orders",
+      attempt.body,
+      expect.objectContaining({ headers: expect.objectContaining({ "Idempotency-Key": attempt.key }) }),
+    );
+    expect(readOrderAttempt("user-marina")).toBeNull();
   });
 });

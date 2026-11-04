@@ -32,9 +32,20 @@ export function newIdempotencyKey(): string {
   return crypto.randomUUID();
 }
 
+/** Prefixo; a chave completa inclui o userId para isolar contas no mesmo browser. */
+export const ORDER_ATTEMPT_KEY_PREFIX = "kurio.order-attempt.";
+/** @deprecated chave legada sem dono — limpa no logout. */
 export const ORDER_ATTEMPT_KEY = "kurio.order-attempt";
 
-export type OrderAttempt = { key: string; body: string };
+export type OrderAttempt = {
+  userId: string;
+  key: string;
+  body: string;
+  orderId?: string;
+  state: "unknown" | "pending";
+};
+
+export const ORDER_OUTCOME_UNKNOWN = "order_outcome_unknown";
 
 function sessionStore(): Storage | null {
   try {
@@ -44,45 +55,88 @@ function sessionStore(): Storage | null {
   }
 }
 
-/** Tentativa em voo: sobrevive a um reload de `/checkout`. `null` se não há nada guardado. */
-export function readOrderAttempt(): OrderAttempt | null {
+function storageKey(userId: string): string {
+  return `${ORDER_ATTEMPT_KEY_PREFIX}${userId}`;
+}
+
+function parseAttempt(raw: string, expectedUserId?: string): OrderAttempt | null {
   try {
-    const raw = sessionStore()?.getItem(ORDER_ATTEMPT_KEY);
-    if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== "object" || parsed === null) return null;
-    const { key, body } = parsed as Record<string, unknown>;
+    const { userId, key, body, orderId, state } = parsed as Record<string, unknown>;
     if (typeof key !== "string" || key === "" || typeof body !== "string") return null;
-    return { key, body };
+    if (typeof userId !== "string" || userId === "") return null;
+    if (expectedUserId && userId !== expectedUserId) return null;
+    if (state !== "unknown" && state !== "pending") return null;
+    return {
+      userId,
+      key,
+      body,
+      state,
+      ...(typeof orderId === "string" ? { orderId } : {}),
+    };
   } catch {
     return null;
   }
 }
 
+/** Tentativa em voo do usuário: sobrevive a reload de `/checkout`. `null` se não há nada. */
+export function readOrderAttempt(userId?: string | null): OrderAttempt | null {
+  const store = sessionStore();
+  if (!store) return null;
+  if (userId) {
+    const raw = store.getItem(storageKey(userId));
+    return raw ? parseAttempt(raw, userId) : null;
+  }
+  // Sem userId: só a chave legada (migração).
+  const legacy = store.getItem(ORDER_ATTEMPT_KEY);
+  return legacy ? parseAttempt(legacy) : null;
+}
+
 export function writeOrderAttempt(attempt: OrderAttempt): void {
   try {
-    sessionStore()?.setItem(ORDER_ATTEMPT_KEY, JSON.stringify(attempt));
+    sessionStore()?.setItem(storageKey(attempt.userId), JSON.stringify(attempt));
+    sessionStore()?.removeItem(ORDER_ATTEMPT_KEY);
   } catch {
     // Sem sessionStorage: a tentativa só vive na memória da página.
   }
 }
 
-export function clearOrderAttempt(): void {
+export function clearOrderAttempt(userId?: string | null): void {
   try {
-    sessionStore()?.removeItem(ORDER_ATTEMPT_KEY);
+    const store = sessionStore();
+    if (!store) return;
+    if (userId) store.removeItem(storageKey(userId));
+    else {
+      for (const key of Object.keys(store)) {
+        if (key === ORDER_ATTEMPT_KEY || key.startsWith(ORDER_ATTEMPT_KEY_PREFIX)) {
+          store.removeItem(key);
+        }
+      }
+    }
   } catch {
     // ignora
   }
 }
 
 /**
- * Reusa a chave se o corpo é o da tentativa guardada (retry depois de timeout ou reload).
- * Corpo diferente gera chave nova e substitui o que estava salvo.
+ * Reusa a chave se o corpo é o da tentativa guardada.
+ * Enquanto o resultado for desconhecido (ou pendente), um corpo diferente NÃO substitui —
+ * lança `order_outcome_unknown` para forçar recuperação da tentativa original.
  */
-export function resolveOrderAttempt(body: string): OrderAttempt {
-  const stored = readOrderAttempt();
-  if (stored && sameOrderAttempt(stored.body, body)) return stored;
-  const next = { key: newIdempotencyKey(), body };
+export function resolveOrderAttempt(userId: string, body: string): OrderAttempt {
+  const stored = readOrderAttempt(userId);
+  if (stored) {
+    if (sameOrderAttempt(stored.body, body)) return stored;
+    throw new Error(ORDER_OUTCOME_UNKNOWN);
+  }
+  const next: OrderAttempt = { userId, key: newIdempotencyKey(), body, state: "unknown" };
+  writeOrderAttempt(next);
+  return next;
+}
+
+export function markOrderAttemptPending(attempt: OrderAttempt, orderId: string): OrderAttempt {
+  const next: OrderAttempt = { ...attempt, orderId, state: "pending" };
   writeOrderAttempt(next);
   return next;
 }

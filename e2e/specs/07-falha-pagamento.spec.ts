@@ -88,4 +88,30 @@ test.describe("falha de pagamento, clique repetido e timeout", () => {
     expect((await kurio.db()).orders[0].status).toBe("confirmed");
     expect((await kurio.db()).orders).toHaveLength(1);
   });
+
+  test("timeout + mudança de preço/carteira recupera o mesmo pedido sem segunda compra", async ({ kurio, page }) => {
+    test.setTimeout(60_000);
+    await readyToPay(kurio, page, "order-timeout");
+    const confirm = page.getByRole("button", { name: "Confirmar compra" });
+    await confirm.click();
+    await expect(page.getByRole("alert").filter({ hasText: "Sem resposta do servidor" })).toBeVisible({
+      timeout: 20_000,
+    });
+    const before = await kurio.db();
+    expect(before.orders).toHaveLength(1);
+    const snapshot = structuredClone(before.orders[0].snapshot);
+
+    await kurio.switchScenario("price-changed");
+    const secondary = page.getByRole("list", { name: "Carteiras" }).getByRole("listitem").nth(1);
+    if (await secondary.count()) {
+      await secondary.click();
+    }
+
+    await confirm.click();
+    await expect(page).toHaveURL(/\/orders\/order-/);
+    const after = await kurio.db();
+    expect(after.orders).toHaveLength(1);
+    expect(after.orders[0].id).toBe(before.orders[0].id);
+    expect(after.orders[0].snapshot).toEqual(snapshot);
+  });
 });

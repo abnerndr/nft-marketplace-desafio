@@ -1,13 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearOrderAttempt,
-  ORDER_ATTEMPT_KEY,
+  ORDER_ATTEMPT_KEY_PREFIX,
+  ORDER_OUTCOME_UNKNOWN,
   readOrderAttempt,
   resolveOrderAttempt,
   sameOrderAttempt,
 } from "./idempotency";
 
 const body = JSON.stringify({ walletId: "wallet-marina-1", couponCode: "GENESIS10", quoteVersion: 1 });
+const USER = "user-marina";
 
 describe("sameOrderAttempt", () => {
   it("reconhece o mesmo corpo como a mesma tentativa", () => {
@@ -58,28 +60,31 @@ describe("tentativa de pedido no sessionStorage", () => {
   });
 
   it("reusa a mesma chave e o mesmo corpo depois de um reload", () => {
-    const first = resolveOrderAttempt(body);
-    expect(sessionStorage.getItem(ORDER_ATTEMPT_KEY)).toContain(first.key);
+    const first = resolveOrderAttempt(USER, body);
+    expect(sessionStorage.getItem(`${ORDER_ATTEMPT_KEY_PREFIX}${USER}`)).toContain(first.key);
 
-    // Reload: o React desmonta, só o sessionStorage resta.
-    const restored = readOrderAttempt();
+    const restored = readOrderAttempt(USER);
     expect(restored).toEqual(first);
-    expect(resolveOrderAttempt(body).key).toBe(first.key);
-    expect(resolveOrderAttempt(body).body).toBe(first.body);
+    expect(resolveOrderAttempt(USER, body).key).toBe(first.key);
+    expect(resolveOrderAttempt(USER, body).body).toBe(first.body);
   });
 
-  it("corpo diferente gera chave nova e substitui a tentativa guardada", () => {
-    const first = resolveOrderAttempt(body);
+  it("corpo diferente não substitui tentativa desconhecida", () => {
+    const first = resolveOrderAttempt(USER, body);
     const next = JSON.stringify({ walletId: "wallet-marina-2", couponCode: "GENESIS10", quoteVersion: 1 });
-    const second = resolveOrderAttempt(next);
-    expect(second.key).not.toBe(first.key);
-    expect(readOrderAttempt()).toEqual(second);
+    expect(() => resolveOrderAttempt(USER, next)).toThrow(ORDER_OUTCOME_UNKNOWN);
+    expect(readOrderAttempt(USER)?.key).toBe(first.key);
+  });
+
+  it("outra conta não lê a tentativa privada", () => {
+    resolveOrderAttempt(USER, body);
+    expect(readOrderAttempt("user-rafael")).toBeNull();
   });
 
   it("limpar a tentativa apaga a chave do sessionStorage", () => {
-    resolveOrderAttempt(body);
-    clearOrderAttempt();
-    expect(readOrderAttempt()).toBeNull();
-    expect(sessionStorage.getItem(ORDER_ATTEMPT_KEY)).toBeNull();
+    resolveOrderAttempt(USER, body);
+    clearOrderAttempt(USER);
+    expect(readOrderAttempt(USER)).toBeNull();
+    expect(sessionStorage.getItem(`${ORDER_ATTEMPT_KEY_PREFIX}${USER}`)).toBeNull();
   });
 });
