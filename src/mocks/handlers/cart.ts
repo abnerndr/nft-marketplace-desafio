@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import type { CartLine } from "@/shared/domain/contracts";
 import { getDatabase, saveDatabase } from "../db";
+import { availableOf, validateInventory } from "../inventory";
 import { schedulePriceChange } from "../socket";
 import { userFromRequest } from "./auth";
 import { editionsOf, findNftBySlug, tokenIdOf } from "./nfts";
@@ -83,6 +84,95 @@ export const cartHandlers = [
     const cart = cartOf(user.id);
     const items = cart.items.flatMap((item) => toLine(item) ?? []);
     return HttpResponse.json({ items, couponCode: cart.couponCode });
+  }),
+
+  /**
+   * Merge atômico do carrinho de visitante. `Idempotency-Key` grava o resultado completo;
+   * replay devolve o mesmo carrinho/ajustes sem duplicar quantidades.
+   */
+  http.post("/api/cart/merge", async ({ request }) => {
+    const user = userFromRequest(request);
+    if (!user) return unauthorized();
+
+    const mergeId = request.headers.get("Idempotency-Key")?.trim() ?? "";
+    if (mergeId === "") {
+      return errorResponse(400, "idempotency_key_required", "Envie o cabeçalho Idempotency-Key.");
+    }
+
+    const db = getDatabase();
+    db.cartMerges ??= {};
+    const storeKey = `${user.id}:${mergeId}`;
+    const previous = db.cartMerges[storeKey];
+    if (previous) {
+      return HttpResponse.json(previous, { headers: { "Idempotency-Replayed": "true" } });
+    }
+
+    const body = await readBody(request);
+    const rawLines = Array.isArray(body.lines) ? body.lines : [];
+    const lines: Array<{ slug: string; editionId: string; quantity: number }> = [];
+    for (const entry of rawLines) {
+      if (typeof entry !== "object" || entry === null) continue;
+      const { slug, editionId, quantity } = entry as Record<string, unknown>;
+      if (typeof slug !== "string" || typeof editionId !== "string") continue;
+      if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1) continue;
+      lines.push({ slug, editionId, quantity });
+    }
+
+    const cart = cartOf(user.id);
+    const adjustments: Array<{ slug: string; editionId: string; from: number; to: number; reason: string }> = [];
+
+    for (const line of lines) {
+      const available = availableOf(line.slug, line.editionId);
+      const existing = cart.items.find((item) => item.slug === line.slug && item.editionId === line.editionId);
+      const wanted = (existing?.quantity ?? 0) + line.quantity;
+      const capped = Math.min(wanted, available);
+      if (capped < wanted) {
+        adjustments.push({
+          slug: line.slug,
+          editionId: line.editionId,
+          from: wanted,
+          to: capped,
+          reason: "stock",
+        });
+      }
+      if (capped < 1) continue;
+      const inventoryCheck = validateInventory([{ slug: line.slug, editionId: line.editionId, quantity: capped }]);
+      if (!inventoryCheck.ok) {
+        adjustments.push({
+          slug: line.slug,
+          editionId: line.editionId,
+          from: wanted,
+          to: existing?.quantity ?? 0,
+          reason: "stock",
+        });
+        continue;
+      }
+      if (existing) existing.quantity = capped;
+      else cart.items.push({ slug: line.slug, editionId: line.editionId, quantity: capped });
+    }
+
+    const couponCode = typeof body.couponCode === "string" ? body.couponCode.trim() : "";
+    if (couponCode && cart.couponCode === null) {
+      const coupon = applyCoupon(couponCode);
+      if (coupon.ok) cart.couponCode = couponCode.toUpperCase();
+      else {
+        adjustments.push({
+          slug: "",
+          editionId: "",
+          from: 0,
+          to: 0,
+          reason: coupon.reason === "expired" ? "coupon_expired" : "coupon_invalid",
+        });
+      }
+    }
+
+    saveDatabase();
+    const view = { items: cart.items.flatMap((item) => toLine(item) ?? []), couponCode: cart.couponCode };
+    const result = { cart: view, adjustments };
+    db.cartMerges[storeKey] = result;
+    saveDatabase();
+    schedulePriceChange(user.id);
+    return HttpResponse.json(result, { status: 200 });
   }),
 
   http.post("/api/cart/items", async ({ request }) => {

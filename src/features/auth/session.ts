@@ -114,7 +114,7 @@ async function authenticate(path: string, body: LoginInput | RegisterInput): Pro
   writeSessionToken(token);
   setSessionIdentity(user.id);
   // O carrinho de visitante sobe uma vez; falha aqui não pode derrubar o login.
-  await syncGuestCart().catch(() => undefined);
+  await syncGuestCart(user.id).catch(() => undefined);
   await syncGuestCoupon().catch(() => undefined);
   return user;
 }

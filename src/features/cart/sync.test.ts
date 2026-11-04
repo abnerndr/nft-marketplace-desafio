@@ -1,3 +1,4 @@
+import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { writeSessionToken } from "@/features/auth/session";
@@ -9,6 +10,7 @@ import { cartHandlers } from "@/mocks/handlers/cart";
 import { nftHandlers } from "@/mocks/handlers/nfts";
 import { quoteHandlers } from "@/mocks/handlers/quote";
 import { addGuestItem, GUEST_CART_KEY, GUEST_COUPON_KEY, readGuestItems, setGuestCoupon } from "./guest-cart";
+import { readMergeAttempt } from "./merge-attempt";
 import { syncGuestCart, syncGuestCoupon } from "./sync";
 
 function memoryStorage(): Storage {
@@ -36,6 +38,7 @@ describe("carrinho de visitante e sincronização no login", () => {
   beforeEach(async () => {
     vi.stubGlobal("location", new URL("http://kurio.test/"));
     vi.stubGlobal("localStorage", memoryStorage());
+    vi.stubGlobal("sessionStorage", memoryStorage());
     initMockState("?reset=1");
     const login = await fetch("http://kurio.test/api/auth/login", {
       method: "POST",
@@ -45,13 +48,13 @@ describe("carrinho de visitante e sincronização no login", () => {
     token = (await login.json()).token;
   });
   afterEach(() => {
+    server.resetHandlers();
     applyScenario("default");
     vi.unstubAllGlobals();
   });
   afterAll(() => server.close());
 
   function signIn() {
-    // O token foi aberto no beforeEach; grava no storage de teste como o login faria.
     writeSessionToken(token);
   }
 
@@ -70,16 +73,48 @@ describe("carrinho de visitante e sincronização no login", () => {
     const db = getDatabase();
     db.carts["user-marina"] = { items: [{ slug: "emerald-ape-042", editionId: "ed-1-50", quantity: 3 }], couponCode: null };
 
-    await syncGuestCart();
+    await syncGuestCart("user-marina");
 
     expect(localStorage.getItem(GUEST_CART_KEY)).toBeNull();
     const items = getDatabase().carts["user-marina"].items;
-    // 3 + 4 passa do estoque (5): sobe até o limite, sem estourar.
     expect(items.find((item) => item.slug === "emerald-ape-042")?.quantity).toBe(5);
     expect(items.find((item) => item.slug === "violet-nomad-314")?.quantity).toBe(1);
 
-    await syncGuestCart();
+    await syncGuestCart("user-marina");
     expect(getDatabase().carts["user-marina"].items).toEqual(items);
+  });
+
+  it("falha no meio do merge preserva as linhas do visitante e a tentativa", async () => {
+    addGuestItem({ slug: "emerald-ape-042", editionId: "ed-1-50", quantity: 1 });
+    addGuestItem({ slug: "sage-nomad-009", editionId: "ed-1-50", quantity: 1 });
+    signIn();
+    server.use(
+      http.post("/api/cart/merge", () =>
+        HttpResponse.json({ error: { code: "unavailable", message: "down" } }, { status: 503 }),
+      ),
+    );
+
+    await expect(syncGuestCart("user-marina")).rejects.toBeTruthy();
+    expect(readGuestItems()).toHaveLength(2);
+    expect(readMergeAttempt("user-marina")?.lines).toHaveLength(2);
+  });
+
+  it("replay do merge não duplica quantidades", async () => {
+    addGuestItem({ slug: "sage-nomad-009", editionId: "ed-1-50", quantity: 2 });
+    signIn();
+    const first = await syncGuestCart("user-marina");
+    expect(first?.cart.items.find((item: { slug: string }) => item.slug === "sage-nomad-009")).toBeTruthy();
+
+    // Simula tentativa regravada e guest limpo: reenvio via mergeId no banco.
+    const mergeId = Object.keys(getDatabase().cartMerges ?? {})[0]?.split(":")[1];
+    expect(mergeId).toBeTruthy();
+    const { data: replay } = await api.post(
+      "/cart/merge",
+      { lines: [{ slug: "sage-nomad-009", editionId: "ed-1-50", quantity: 2 }], couponCode: null },
+      { headers: { "Idempotency-Key": mergeId } },
+    );
+    expect(replay.cart).toEqual(first?.cart);
+    expect(getDatabase().carts["user-marina"].items.filter((item) => item.slug === "sage-nomad-009")).toHaveLength(1);
   });
 
   it("no login o cupom do visitante vai para o carrinho sem cupom e a chave some", async () => {

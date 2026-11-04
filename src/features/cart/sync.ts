@@ -1,73 +1,77 @@
 import { isAxiosError } from "axios";
 import { api } from "@/shared/api/client";
-import { cartViewSchema, nftDetailSchema } from "@/shared/domain/contracts";
-import { readGuestCoupon, restoreGuestItems, setGuestCoupon, takeGuestItems } from "./guest-cart";
-import { mergeGuestCart, type MergeItem } from "./merge";
+import { cartViewSchema } from "@/shared/domain/contracts";
+import { readGuestCoupon, readGuestItems, restoreGuestItems, setGuestCoupon } from "./guest-cart";
+import { clearMergeAttempt, newMergeId, readMergeAttempt, writeMergeAttempt, type GuestMergeAttempt } from "./merge-attempt";
 
-async function availabilityOf(slug: string): Promise<Map<string, number> | null> {
-  try {
-    const { data } = await api.get(`/nfts/${encodeURIComponent(slug)}`);
-    return new Map(nftDetailSchema.parse(data).editions.map((edition) => [edition.id, edition.available]));
-  } catch (error) {
-    if (isAxiosError(error) && error.response?.status === 404) return null;
-    throw error;
-  }
+export type CartMergeResult = {
+  cart: { items: unknown[]; couponCode: string | null };
+  adjustments: Array<{ slug: string; editionId: string; from: number; to: number; reason: string }>;
+};
+
+/** Última falha de merge após login bem-sucedido — a UI de conta/login consome e limpa. */
+let lastMergeFailure: string | null = null;
+
+export function consumeMergeFailure(): string | null {
+  const message = lastMergeFailure;
+  lastMergeFailure = null;
+  return message;
+}
+
+export function peekMergeFailure(): string | null {
+  return lastMergeFailure;
+}
+
+export function reportMergeFailure(message: string): void {
+  lastMergeFailure = message;
 }
 
 /**
- * Chamada uma vez no login/cadastro bem-sucedido: leva o carrinho de visitante
- * (`kurio.guest-cart`) para a API e apaga a chave. A chave é apagada antes de qualquer
- * request, então dois logins seguidos nunca enviam os mesmos itens duas vezes.
+ * Sincroniza o carrinho de visitante via `POST /cart/merge` atômico e idempotente.
+ * Persiste a tentativa antes do envio; só limpa guest/tentativa após resposta confirmada.
  */
-export async function syncGuestCart(): Promise<void> {
-  const guest = takeGuestItems();
-  if (guest.length === 0) return;
+export async function syncGuestCart(userId: string): Promise<CartMergeResult | null> {
+  const existing = readMergeAttempt(userId);
+  const guestLines = existing?.lines ?? readGuestItems();
+  const couponCode = existing?.couponCode ?? readGuestCoupon();
+  if (guestLines.length === 0 && !existing) return null;
 
-  let sent = 0;
+  const attempt: GuestMergeAttempt =
+    existing ??
+    ({
+      userId,
+      mergeId: newMergeId(),
+      lines: guestLines,
+      couponCode,
+    } satisfies GuestMergeAttempt);
+
+  writeMergeAttempt(attempt);
+
   try {
-    const { data } = await api.get("/cart");
-    const userLines = cartViewSchema.parse(data).items;
-
-    const stock = new Map<string, Map<string, number> | null>();
-    for (const slug of new Set(guest.map((item) => item.slug))) {
-      stock.set(slug, await availabilityOf(slug));
-    }
-
-    const guestItems: MergeItem[] = guest.flatMap((item) => {
-      const available = stock.get(item.slug)?.get(item.editionId);
-      return available === undefined ? [] : [{ ...item, available }];
-    });
-    const userItems: MergeItem[] = userLines.map(({ slug, editionId, quantity, available }) => ({
-      slug,
-      editionId,
-      quantity,
-      available,
-    }));
-    const have = new Map(userItems.map((item) => [`${item.slug}~${item.editionId}`, item.quantity]));
-
-    for (const item of mergeGuestCart(guestItems, userItems)) {
-      const missing = item.quantity - (have.get(`${item.slug}~${item.editionId}`) ?? 0);
-      if (missing < 1 || !item.slug) continue;
-      try {
-        await api.post("/cart/items", { slug: item.slug, editionId: item.editionId, quantity: missing });
-        sent += 1;
-      } catch (error) {
-        // Estoque mudou no meio do caminho: essa linha fica de fora, as outras seguem.
-        if (isAxiosError(error) && error.response?.status === 409) continue;
-        throw error;
-      }
-    }
+    const { data } = await api.post(
+      "/cart/merge",
+      { lines: attempt.lines, couponCode: attempt.couponCode },
+      { headers: { "Idempotency-Key": attempt.mergeId } },
+    );
+    const result = data as CartMergeResult;
+    clearMergeAttempt(userId);
+    restoreGuestItems([]);
+    setGuestCoupon(null);
+    return result;
   } catch (error) {
-    // Falha antes de qualquer envio: devolve os itens para tentar de novo no próximo login.
-    if (sent === 0) restoreGuestItems(guest);
+    const message = isAxiosError(error)
+      ? ((error.response?.data as { error?: { message?: string } } | undefined)?.error?.message ??
+        "Não foi possível sincronizar o carrinho de visitante.")
+      : "Não foi possível sincronizar o carrinho de visitante.";
+    reportMergeFailure(message);
     throw error;
   }
 }
 
 /**
  * Chamada no login/cadastro: leva o cupom de visitante (`kurio.guest-coupon`) para o carrinho do
- * usuário, só se ele ainda não tiver cupom. A chave do visitante sempre é apagada, inclusive quando
- * o usuário já tinha cupom ou o servidor recusou o código (422). Falha de rede mantém a chave.
+ * usuário, só se ele ainda não tiver cupom. Preferimos o merge atômico; este caminho cobre cupom
+ * sozinho quando não há linhas.
  */
 export async function syncGuestCoupon(): Promise<void> {
   const code = readGuestCoupon();

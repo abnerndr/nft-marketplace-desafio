@@ -75,6 +75,8 @@ export type Database = {
   editionStock?: Record<string, EditionStockRecord>;
   /** Reservas por `orderId`. */
   reservations?: Record<string, InventoryReservation>;
+  /** Resultado idempotente de `POST /cart/merge` por `${userId}:${mergeId}`. */
+  cartMerges?: Record<string, { cart: Cart; adjustments: Array<{ slug: string; editionId: string; from: number; to: number; reason: string }> }>;
 };
 
 type Collection =
@@ -224,5 +226,6 @@ export function createSeed(): Database {
     sessions: {},
     editionStock,
     reservations: {},
+    cartMerges: {},
   };
 }
