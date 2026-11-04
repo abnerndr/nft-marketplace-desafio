@@ -20,7 +20,6 @@ import starEmpty from "@/assets/nft/star-empty.svg";
 import starFilled from "@/assets/nft/star-filled.svg";
 import starMobile from "@/assets/nft/star-mobile.svg";
 import twitter from "@/assets/nft/twitter.svg";
-import zoom from "@/assets/nft/zoom.svg";
 import { nftListQuery } from "@/features/catalog/api";
 import { NftCard } from "@/features/catalog/nft-card";
 import { toParams, type CollectionId } from "@/features/catalog/search";
@@ -31,6 +30,7 @@ import { readApiError } from "@/shared/api/errors";
 import type { Edition, NftDetail } from "@/shared/domain/contracts";
 import { formatEth } from "@/shared/domain/money";
 import { addToCart, isNotFound, isUnauthorized, nftDetailQuery } from "./api";
+import { NftGallery } from "./gallery";
 
 const RELATED_COUNT = 5;
 const PREFERRED_EDITION_ID = "ed-1-50";
@@ -157,40 +157,6 @@ function ShareLinks({ title }: { title: string }) {
   );
 }
 
-function Gallery({ nft }: { nft: NftDetail }) {
-  return (
-    <div className="relative flex gap-7 lg:h-[448px] lg:w-[573px]">
-      <div className="hidden w-[100px] shrink-0 flex-col gap-4 lg:flex" aria-hidden="true">
-        {[0, 1, 2, 3].map((index) => (
-          <div
-            key={index}
-            className={`size-[100px] overflow-hidden rounded-lg bg-surface-card ${
-              index === 1 ? "border border-primary" : ""
-            }`}
-          >
-            <img src={nft.imageUrl} alt="" className="size-full object-cover" />
-          </div>
-        ))}
-      </div>
-      <div className="flex w-full items-center justify-center rounded-[24px] bg-gradient-to-br from-surface-card to-[#2F1D15] p-0 max-lg:h-[356px] lg:size-[444px] lg:rounded-md lg:bg-surface-card lg:bg-none lg:p-4">
-        <img
-          src={nft.imageUrl}
-          alt={nft.title}
-          className="size-full rounded-[24px] object-cover lg:size-[404px]"
-        />
-      </div>
-      <a
-        href={nft.imageUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Ampliar imagem"
-        className="absolute right-3 top-3 lg:left-[530px] lg:right-auto lg:top-[15px]"
-      >
-        <img src={zoom} alt="" />
-      </a>
-    </div>
-  );
-}
 
 function PurchaseBar({ nft }: { nft: NftDetail }) {
   const navigate = useNavigate();
@@ -477,7 +443,7 @@ function DetailContent({ nft }: { nft: NftDetail }) {
         </div>
 
         <div className="flex flex-col gap-8 lg:flex-row">
-          <Gallery nft={nft} />
+          <NftGallery title={nft.title} images={nft.images} />
 
           <div className="flex flex-col gap-3 rounded-t-[31px] bg-surface-card px-6 pb-6 pt-8 lg:min-w-px lg:flex-1 lg:justify-between lg:gap-6 lg:rounded-none lg:bg-transparent lg:p-0">
             <div className="flex flex-col gap-3">

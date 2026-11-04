@@ -24,6 +24,23 @@ test.describe("detalhe do NFT: acesso direto e NFT inexistente", () => {
     await expect(page.getByRole("heading", { level: 1, name: SEED.second.title })).toBeVisible();
   });
 
+  test("galeria seleciona miniatura e zoom fecha com Escape", async ({ kurio, page }) => {
+    test.skip(page.viewportSize()?.width !== 1440, "Miniaturas só no desktop");
+    await kurio.open(`/nfts/${firstNft.slug}`);
+    await kurio.expectDetailLoaded();
+
+    const second = page.getByRole("button", { name: "Ver imagem 2" });
+    await second.click();
+    await expect(second).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: "Ver imagem 1" })).toHaveAttribute("aria-pressed", "false");
+
+    await page.getByRole("button", { name: "Ampliar imagem" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Ampliar imagem" })).toBeFocused();
+  });
+
   test("a edição 1/1 esgotada bloqueia a compra e as demais liberam", async ({ kurio, page }) => {
     await kurio.open(`/nfts/${firstNft.slug}`);
     await kurio.expectDetailLoaded();

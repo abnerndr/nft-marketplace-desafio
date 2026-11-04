@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { consumeMergeFailure, syncGuestCart } from "@/features/cart/sync";
 import { readApiError } from "@/shared/api/errors";
 import { AuthCard, Field, FormError, FormFields, PasswordField, SubmitButton } from "./auth-card";
+import { AuthDesktopDialog, useDesktopAuthLayout } from "./auth-dialog";
 import { safeRedirect, useLogin } from "./session";
 
 const FORM_ERROR_ID = "login-form-error";
@@ -11,6 +12,7 @@ export function LoginPage() {
   const router = useRouter();
   const { redirect } = useSearch({ strict: false }) as { redirect?: string };
   const login = useLogin();
+  const desktop = useDesktopAuthLayout();
   const [mergeAlert, setMergeAlert] = useState<string | null>(null);
   const [mergeUserId, setMergeUserId] = useState<string | null>(null);
   const [retryingMerge, setRetryingMerge] = useState(false);
@@ -56,7 +58,7 @@ export function LoginPage() {
     }
   }
 
-  return (
+  const card = (
     <AuthCard
       mode="login"
       title="Entrar"
@@ -98,7 +100,7 @@ export function LoginPage() {
           <button
             type="button"
             disabled
-            title="Em breve"
+            title="Recuperação de senha não está disponível nesta demonstração"
             className="text-sm leading-4 text-text-accent disabled:cursor-not-allowed"
           >
             Esqueceu a senha?
@@ -108,4 +110,18 @@ export function LoginPage() {
       <SubmitButton pending={login.isPending}>Entrar</SubmitButton>
     </AuthCard>
   );
+
+  if (desktop) {
+    return (
+      <AuthDesktopDialog
+        title="Entrar"
+        description="Entre para gerenciar sua carteira, coleção e perfil de criador."
+        redirect={redirect}
+      >
+        {card}
+      </AuthDesktopDialog>
+    );
+  }
+
+  return card;
 }

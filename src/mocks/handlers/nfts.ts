@@ -151,6 +151,12 @@ function toDetail(nft: NftSummary): NftDetail {
     contractNote: "0x7A42...19E8 • Contrato inteligente ERC-721 verificado.",
     rating: { average: "4.8", count: 19 },
     editions: editionsOf(nft),
+    // O frame repete a mesma arte em quatro miniaturas — preservamos isso e habilita seleção/zoom.
+    images: [0, 1, 2, 3].map((index) => ({
+      id: `${nft.slug}-img-${index + 1}`,
+      url: nft.imageUrl,
+      alt: index === 0 ? nft.title : `${nft.title} (vista ${index + 1})`,
+    })),
   };
 }
 

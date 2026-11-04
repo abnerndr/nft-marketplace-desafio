@@ -23,6 +23,12 @@ export const editionSchema = z.object({
   available: z.number().int().nonnegative(),
 });
 
+export const nftGalleryImageSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  alt: z.string(),
+});
+
 export const nftDetailSchema = z.object({
   ...nftFields,
   tokenId: z.string(),
@@ -35,6 +41,8 @@ export const nftDetailSchema = z.object({
   contractNote: z.string(),
   rating: z.object({ average: z.string(), count: z.number().int().nonnegative() }),
   editions: z.array(editionSchema),
+  /** Quatro slots do Figma: a mesma arte repetida quando o desenho não traz variantes. */
+  images: z.array(nftGalleryImageSchema).min(1),
 });
 
 export const cartItemSchema = z.object({
@@ -117,6 +125,7 @@ export const apiErrorSchema = z.object({
 
 export type NftSummary = z.infer<typeof nftSummarySchema>;
 export type NftDetail = z.infer<typeof nftDetailSchema>;
+export type NftGalleryImage = z.infer<typeof nftGalleryImageSchema>;
 export type Edition = z.infer<typeof editionSchema>;
 export type Cart = z.infer<typeof cartSchema>;
 export type CartLine = z.infer<typeof cartLineSchema>;

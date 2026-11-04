@@ -1,9 +1,10 @@
-import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import close from "@/assets/orders/close.svg";
 import lineMeta from "@/assets/orders/line-meta.svg";
 import lineTable from "@/assets/orders/line-table.svg";
 import thankYou from "@/assets/orders/thank-you.svg";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { NETWORK_LABELS, isWalletNetwork } from "@/features/wallets/types";
 import { readApiError } from "@/shared/api/errors";
 import type { Order } from "@/shared/domain/contracts";
@@ -217,6 +218,35 @@ export function ConfirmationPage({ orderId }: { orderId: string }) {
           Recebemos o seu pedido e estamos esperando a rede confirmar. Esta página atualiza sozinha.
         </p>
       </StatusCard>
+    );
+  }
+
+  const navigate = useNavigate();
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setDesktop(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  const confirmed = order.data?.status === "confirmed";
+
+  if (desktop && confirmed && order.data) {
+    return (
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) void navigate({ to: "/" });
+        }}
+      >
+        <DialogContent className="max-h-[90vh] w-[min(100%,578px)] overflow-y-auto border-0 bg-transparent p-0 shadow-none" showClose={false}>
+          <DialogTitle className="sr-only">Seus NFTs agora estão na sua carteira</DialogTitle>
+          <DialogDescription className="sr-only">Recibo da compra simulada</DialogDescription>
+          <Receipt order={order.data} />
+        </DialogContent>
+      </Dialog>
     );
   }
 
