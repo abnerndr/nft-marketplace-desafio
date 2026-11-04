@@ -13,6 +13,8 @@ import heroDots from "@/assets/home/hero-dots.svg";
 import pageNext from "@/assets/home/page-next.svg";
 import promoMask from "@/assets/home/promo-mask.svg";
 import tabUnderline from "@/assets/home/tab-underline.svg";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { readApiError } from "@/shared/api/errors";
 import { nftListQuery } from "./api";
 import { Filters } from "./filters";
@@ -332,17 +334,27 @@ function Catalog() {
       className="flex scroll-mt-6 flex-col gap-6 lg:flex-row lg:gap-12"
     >
       <aside className="flex flex-col gap-6 lg:w-[310px] lg:shrink-0">
-        <button
+        <Button
           type="button"
           aria-expanded={filtersOpen}
-          aria-controls="catalogo-filtros"
-          onClick={() => setFiltersOpen((open) => !open)}
-          className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary font-bold text-ink lg:hidden"
+          aria-controls="catalogo-filtros-mobile"
+          className="h-11 gap-2 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary lg:hidden"
+          onClick={() => setFiltersOpen(true)}
         >
           <img src={filterIcon} alt="" width={16} height={16} />
           Filtros
-        </button>
-        <div id="catalogo-filtros" className={`${filtersOpen ? "block" : "hidden"} lg:block`}>
+        </Button>
+        <Sheet open={filtersOpen} onOpenChange={setFiltersOpen} modal={false}>
+          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-[20px] lg:hidden">
+            <SheetHeader>
+              <SheetTitle>Filtros</SheetTitle>
+            </SheetHeader>
+            <div id="catalogo-filtros-mobile" className="mt-4">
+              <Filters search={search} facets={data?.facets} onChange={change} />
+            </div>
+          </SheetContent>
+        </Sheet>
+        <div id="catalogo-filtros" className="hidden lg:block">
           <Filters search={search} facets={data?.facets} onChange={change} />
         </div>
         <div className="relative hidden h-[470px] flex-col gap-4 overflow-hidden bg-gradient-to-b from-primary/10 to-primary/[0.03] pt-6 lg:flex">

@@ -82,7 +82,7 @@ entra nas tasks que criam os handlers correspondentes.
 - Marina: 1 favorito (`emerald-ape-042`) e duas carteiras.
 - Rafael: sem carteira e sem favorito.
 - Senhas guardam só o hex SHA-256. Nunca o texto.
-- `imageUrl` aponta para SVGs locais em `public/nfts/`, um por título da home.
+- `imageUrl` usa as artes PNG locais do Figma (`src/assets/home/*.png`) via `nftAssets` / `resolveNftAsset`.
 - **Estoque por edição** (`editionStock`): cada NFT tem saldos independentes `ed-1-1` (sempre 0),
   `ed-1-10` (metade do agregado), `ed-1-50` e `ed-open` (agregado completo). O campo
   `nft.available` é o **teto agregado** consumido nas reservas. Pedidos `pending` reservam;

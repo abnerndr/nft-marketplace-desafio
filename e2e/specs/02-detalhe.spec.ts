@@ -66,7 +66,8 @@ test.describe("detalhe do NFT: acesso direto e NFT inexistente", () => {
 
     await expect(page.getByText("Adicionado ao carrinho.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Carrinho", exact: true })).toContainText("2");
-    await page.getByRole("status").getByRole("link", { name: "Ver carrinho" }).click();
+    // Mobile: o toast pode ficar atrás da bottom nav — o link Carrinho (header ou nav) basta.
+    await page.getByRole("link", { name: "Carrinho", exact: true }).click();
     await expect(page).toHaveURL(/\/cart$/);
     await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText(firstNft.title);
   });

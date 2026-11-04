@@ -7,14 +7,32 @@ import cartIcon from "@/assets/header/cart.svg";
 import divider from "@/assets/header/divider.svg";
 import loginIcon from "@/assets/header/login.svg";
 import searchIcon from "@/assets/header/search.svg";
+import filterIcon from "@/assets/home/filter.svg";
 import { useLogout, useSession } from "@/features/auth/session";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type SiteHeaderProps = {
   cartCount?: number;
+  /** Busca “Explorar coleções” + filtro na mesma linha (frame mobile). */
+  compact?: boolean;
 };
 
 const navLinkClass =
   "text-base font-normal text-foreground transition-colors hover:text-text-accent whitespace-nowrap";
+
+function isMarketPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/nfts") ||
+    pathname === "/cart" ||
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/orders")
+  );
+}
+
+function isAccountPath(pathname: string): boolean {
+  return pathname.startsWith("/account") || pathname === "/login" || pathname === "/register";
+}
 
 /** Com sessão: nome da conta e saída. Sem sessão: o botão Entrar do Figma. */
 function AccountControl() {
@@ -31,7 +49,7 @@ function AccountControl() {
     return (
       <Link
         to="/login"
-        className="flex h-[35px] w-[100px] items-center justify-center gap-1 rounded-md bg-primary text-base font-medium text-ink"
+        className="inline-flex h-[35px] w-[100px] items-center justify-center gap-1 rounded-md bg-primary text-base font-medium text-ink transition-colors hover:bg-text-accent"
       >
         <span className="flex size-5 items-center justify-center">
           <img src={loginIcon} alt="" width={18} height={17} className="max-w-none" />
@@ -49,24 +67,26 @@ function AccountControl() {
       >
         {user.name}
       </Link>
-      <button
+      <Button
         type="button"
+        variant="accent"
+        size="sm"
         aria-label="Encerrar sessão"
         disabled={signOut.isPending}
         onClick={() => signOut.mutate(undefined, { onSettled: () => void navigate({ to: "/" }) })}
-        className="text-sm font-medium text-text-accent disabled:opacity-60"
       >
         Sair
-      </button>
+      </Button>
     </div>
   );
 }
 
-export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
+export function SiteHeader({ cartCount = 0, compact = false }: SiteHeaderProps) {
   const navigate = useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname });
   const { q } = useSearch({ strict: false }) as { q?: string };
-  const homeActive = pathname === "/";
+  const homeActive = pathname === "/" || (isAccountPath(pathname) && !isMarketPath(pathname));
+  const marketActive = isMarketPath(pathname);
   const [searchOpen, setSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -96,13 +116,45 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
     });
   }
 
+  if (compact) {
+    return (
+      <header className="w-full pt-4">
+        <form
+          role="search"
+          onSubmit={handleSearch}
+          className="mx-auto flex w-full max-w-[1200px] items-stretch gap-2 px-6"
+        >
+          <label className="flex h-[45px] min-w-0 flex-1 items-center gap-2 rounded-[10px] bg-surface-card px-3">
+            <img src={searchIcon} alt="" width={22} height={22} />
+            <Input
+              key={q ?? ""}
+              type="search"
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Explorar coleções"
+              aria-label="Explorar coleções"
+              className="h-auto border-0 bg-transparent px-0 text-sm font-bold text-kurio-secondary placeholder:text-kurio-secondary focus-visible:outline-none"
+            />
+          </label>
+          <Button
+            type="button"
+            aria-label="Ir ao catálogo e filtros"
+            className="size-[45px] shrink-0 rounded-[14px] bg-gradient-to-br from-primary/45 to-primary p-0"
+            onClick={() => {
+              void navigate({ to: "/", hash: "catalogo" });
+            }}
+          >
+            <img src={filterIcon} alt="" width={22} height={22} />
+          </Button>
+        </form>
+      </header>
+    );
+  }
+
   return (
     <header className="w-full">
-      <div className="mx-auto flex w-full max-w-[1240px] flex-wrap items-start justify-between gap-x-10 gap-y-4 px-5">
-        <Link
-          to="/"
-          className="py-2 text-sm font-bold tracking-[0.1em] text-foreground"
-        >
+      <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-start justify-between gap-x-10 gap-y-4 px-6">
+        <Link to="/" className="py-2 text-sm font-bold tracking-[0.1em] text-foreground">
           KURIO
         </Link>
 
@@ -112,26 +164,30 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
         >
           <Link
             to="/"
-            aria-current={homeActive ? "page" : undefined}
+            aria-current={homeActive && !marketActive ? "page" : undefined}
             className={
-              homeActive
+              homeActive && !marketActive
                 ? "flex flex-col gap-6 text-base font-bold text-text-accent"
                 : navLinkClass
             }
           >
             Início
-            {homeActive ? (
-              <img
-                src={activeUnderline}
-                alt=""
-                width={58}
-                height={3}
-                className="block max-w-none"
-              />
+            {homeActive && !marketActive ? (
+              <img src={activeUnderline} alt="" width={58} height={3} className="block max-w-none" />
             ) : null}
           </Link>
-          <Link to="/" className={navLinkClass}>
+          <Link
+            to="/"
+            hash="catalogo"
+            aria-current={marketActive ? "page" : undefined}
+            className={
+              marketActive ? "flex flex-col gap-6 text-base font-bold text-text-accent" : navLinkClass
+            }
+          >
             Mercado
+            {marketActive ? (
+              <img src={activeUnderline} alt="" width={58} height={3} className="block max-w-none" />
+            ) : null}
           </Link>
           <Link to="/" hash="diario" className={navLinkClass}>
             Criadores
@@ -149,7 +205,7 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
             className="flex items-center gap-2"
           >
             {searchOpen ? (
-              <input
+              <Input
                 ref={inputRef}
                 key={q ?? ""}
                 type="search"
@@ -157,35 +213,29 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
                 defaultValue={q ?? ""}
                 placeholder="Buscar NFTs"
                 aria-label="Buscar NFTs"
-                className="h-8 w-28 border-b border-border-soft bg-transparent text-sm text-foreground placeholder:text-kurio-secondary focus:border-primary focus:outline-none sm:w-40"
+                className="h-8 w-28 rounded-none border-0 border-b border-border-soft px-0 sm:w-40"
               />
             ) : null}
-            <button
+            <Button
               ref={toggleRef}
               type="button"
+              variant="ghost"
+              size="icon-sm"
               aria-label="Abrir busca"
               aria-expanded={searchOpen}
               onClick={() => setSearchOpen((open) => !open)}
               className="shrink-0"
             >
               <img src={searchIcon} alt="" width={20} height={20} />
-            </button>
+            </Button>
           </form>
 
           <Link to="/cart" aria-label="Carrinho" className="relative block">
             <img src={cartIcon} alt="" width={24} height={24} />
             {cartCount > 0 ? (
-              <span className="absolute left-[15px] top-0 flex size-4 items-center justify-center">
-                <img
-                  src={badge}
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="absolute max-w-none"
-                />
-                <span className="relative text-[10px] font-medium text-ink">
-                  {cartCount}
-                </span>
+              <span className="absolute top-0 left-[15px] flex size-4 items-center justify-center">
+                <img src={badge} alt="" width={20} height={20} className="absolute max-w-none" />
+                <span className="relative text-[10px] font-medium text-ink">{cartCount}</span>
               </span>
             ) : null}
           </Link>
@@ -193,14 +243,8 @@ export function SiteHeader({ cartCount = 0 }: SiteHeaderProps) {
           <AccountControl />
         </div>
       </div>
-      <div className="mx-auto w-full max-w-[1240px] px-5">
-        <img
-          src={divider}
-          alt=""
-          width={1200}
-          height={0.3}
-          className="block h-px w-full max-w-none"
-        />
+      <div className="mx-auto w-full max-w-[1200px] px-6">
+        <img src={divider} alt="" width={1200} height={0.3} className="block h-px w-full max-w-none" />
       </div>
     </header>
   );

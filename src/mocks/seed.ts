@@ -1,4 +1,5 @@
 import type { Cart, NftSummary, Order, User } from "@/shared/domain/contracts";
+import { resolveNftAsset } from "@/shared/domain/nft-assets";
 
 /** Campos de perfil são opcionais: o seed e bancos antigos não os têm. */
 export type UserRecord = User & {
@@ -143,7 +144,7 @@ function toNft(slug: string, title: string, collection: Collection, network: Net
     priceEth: toEth(cents),
     compareAtEth,
     available,
-    imageUrl: `/nfts/${image}.svg`,
+    imageUrl: resolveNftAsset(image),
   };
 }
 

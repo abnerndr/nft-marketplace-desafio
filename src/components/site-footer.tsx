@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import type { FormEvent, ReactNode } from "react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
 import facebook from "@/assets/footer/facebook.svg";
 import instagram from "@/assets/footer/instagram.svg";
 import linkedin from "@/assets/footer/linkedin.svg";
 import twitter from "@/assets/footer/twitter.svg";
 import youtube from "@/assets/footer/youtube.svg";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const features = [
   {
@@ -61,31 +63,44 @@ const socials = [
   { label: "YouTube", icon: youtube },
 ];
 
-function DiaryLink({
+/** Ações editoriais/sociais fora do escopo: comunicam indisponibilidade, sem falso sucesso. */
+function UnavailableAction({
   children,
   className,
   label,
+  onAnnounce,
 }: {
   children: ReactNode;
   className?: string;
   label?: string;
+  onAnnounce: (message: string) => void;
 }) {
+  const name = label ?? (typeof children === "string" ? children : "Esta ação");
   return (
-    <Link to="/" hash="diario" aria-label={label} className={className}>
+    <button
+      type="button"
+      aria-label={`${name} (indisponível nesta demonstração)`}
+      className={className}
+      onClick={() => onAnnounce(`${name} não está disponível nesta demonstração.`)}
+    >
       {children}
-    </Link>
+    </button>
   );
 }
 
 export function SiteFooter() {
+  const statusId = useId();
+  const [status, setStatus] = useState("");
+
   function handleNewsletter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setStatus("Inscrição na lista de lançamentos não está disponível nesta demonstração.");
   }
 
   return (
     <footer className="w-full">
       <div className="bg-surface-card">
-        <div className="mx-auto grid w-full max-w-[1240px] gap-8 px-5 py-8 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.35fr] lg:gap-0">
+        <div className="mx-auto grid w-full max-w-[1200px] gap-8 px-6 py-8 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.35fr] lg:gap-0">
           {features.map((feature) => (
             <div
               key={feature.title}
@@ -109,31 +124,32 @@ export function SiteFooter() {
             <form
               onSubmit={handleNewsletter}
               className="flex h-10 items-stretch overflow-hidden rounded-md bg-surface-dark shadow-[0_0_10px_rgba(10,6,4,0.45)]"
+              aria-describedby={statusId}
             >
-              <input
+              <Input
                 type="email"
                 name="email"
                 placeholder="digite seu e-mail..."
                 aria-label="E-mail"
-                className="min-w-0 flex-1 bg-transparent px-3 text-sm text-foreground placeholder:text-kurio-secondary focus:outline-none"
+                className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 text-sm focus-visible:outline-none"
               />
-              <button
-                type="submit"
-                className="w-[85px] shrink-0 bg-primary pl-4 pr-1 text-lg font-bold text-ink"
-              >
+              <Button type="submit" className="h-full w-[85px] shrink-0 rounded-none pl-4 pr-1 text-lg">
                 Enviar
-              </button>
+              </Button>
             </form>
             <p className="text-[13px] leading-[22px] text-text-secondary">
               Receba lançamentos selecionados, histórias de criadores e novidades
               do mercado.
+            </p>
+            <p id={statusId} role="status" className="text-[13px] text-text-accent">
+              {status}
             </p>
           </div>
         </div>
       </div>
 
       <div className="bg-surface-dark">
-        <div className="mx-auto grid w-full max-w-[1240px] items-center gap-4 px-5 py-6 text-sm leading-[22px] text-foreground md:grid-cols-2 lg:min-h-[88px] lg:grid-cols-[1fr_1fr_1fr_228px] lg:gap-[92px] lg:py-0">
+        <div className="mx-auto grid w-full max-w-[1200px] items-center gap-4 px-6 py-6 text-sm leading-[22px] text-foreground md:grid-cols-2 lg:min-h-[88px] lg:grid-cols-[1fr_1fr_1fr_228px] lg:gap-[92px] lg:py-0">
           <span className="font-bold tracking-[0.1em]">KURIO</span>
           <p>
             Feito para colecionadores,
@@ -146,7 +162,7 @@ export function SiteFooter() {
       </div>
 
       <div className="bg-surface-card">
-        <div className="mx-auto grid w-full max-w-[1240px] gap-8 px-5 py-8 text-foreground md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_228px] lg:gap-[124px]">
+        <div className="mx-auto grid w-full max-w-[1200px] gap-8 px-6 py-8 text-foreground md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_228px] lg:gap-[124px]">
           {linkColumns.map((column) => (
             <div key={column.title} className="flex flex-col gap-2">
               <p className="text-lg font-bold leading-4">{column.title}</p>
@@ -158,9 +174,12 @@ export function SiteFooter() {
                         {label}
                       </Link>
                     ) : (
-                      <DiaryLink className="hover:text-text-accent">
+                      <UnavailableAction
+                        className="hover:text-text-accent"
+                        onAnnounce={setStatus}
+                      >
                         {label}
-                      </DiaryLink>
+                      </UnavailableAction>
                     )}
                   </li>
                 ))}
@@ -172,10 +191,11 @@ export function SiteFooter() {
               <p className="text-lg font-bold leading-4">Redes sociais</p>
               <div className="flex items-center gap-2.5">
                 {socials.map((social) => (
-                  <DiaryLink
+                  <UnavailableAction
                     key={social.label}
                     label={social.label}
                     className="block size-[30px] shrink-0"
+                    onAnnounce={setStatus}
                   >
                     <img
                       src={social.icon}
@@ -184,7 +204,7 @@ export function SiteFooter() {
                       height={32}
                       className="-m-px block max-w-none"
                     />
-                  </DiaryLink>
+                  </UnavailableAction>
                 ))}
               </div>
             </div>

@@ -23,6 +23,12 @@ async function openFilters(page: Page): Promise<void> {
 }
 
 async function search(page: Page, text: string): Promise<void> {
+  const mobile = page.getByRole("searchbox", { name: "Explorar coleções" });
+  if (await mobile.isVisible()) {
+    await mobile.fill(text);
+    await mobile.press("Enter");
+    return;
+  }
   const box = page.getByRole("searchbox", { name: "Buscar NFTs" });
   if (!(await box.isVisible())) await page.getByRole("button", { name: "Abrir busca" }).click();
   await box.fill(text);
@@ -161,12 +167,12 @@ test.describe("catálogo: busca, filtros, ordenação e paginação", () => {
 
   test("abre a URL com filtros e mostra os controles já marcados", async ({ kurio, page }) => {
     await kurio.open("/?collection=music&collection=3d&sort=price_desc&tab=all");
+    await expect(page.getByRole("tab", { name: "Todos os NFTs" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByLabel("Ordenar por:")).toHaveValue("price_desc");
     await openFilters(page);
     await expect(page.getByRole("checkbox", { name: /^Música/ })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: /^Arte 3D/ })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: /^Fotografia/ })).not.toBeChecked();
-    await expect(page.getByLabel("Ordenar por:")).toHaveValue("price_desc");
-    await expect(page.getByRole("tab", { name: "Todos os NFTs" })).toHaveAttribute("aria-selected", "true");
   });
 
   test("cenário empty mostra o estado vazio", async ({ kurio, page }) => {
