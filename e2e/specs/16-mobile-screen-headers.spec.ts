@@ -38,3 +38,16 @@ test.describe("mobile screen headers (390)", () => {
     await expect(page.locator("header").filter({ hasText: /^Início$/ })).toHaveCount(0);
   });
 });
+
+test.describe("desktop unchanged at 1440", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("detalhe e carrinho mantêm breadcrumb e header KURIO", async ({ kurio, page }) => {
+    await kurio.open(`/nfts/${SEED.firstNft.slug}`);
+    await expect(page.getByRole("link", { name: "KURIO" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Navegação estrutural" })).toBeVisible();
+    await page.goto("/cart");
+    await expect(page.getByRole("navigation", { name: "Navegação estrutural" })).toContainText("Carrinho");
+    await expect(page.getByRole("navigation", { name: "Principal" })).toBeVisible();
+  });
+});
