@@ -136,6 +136,25 @@ export class Kurio {
     await expect(this.page.getByRole("button", { name: `Desconectar ${label}` })).toBeVisible();
   }
 
+  /** Preenche o perfil do colecionador obrigatório no checkout. */
+  async fillCollector(overrides: Partial<Record<string, string>> = {}): Promise<void> {
+    const values = {
+      displayName: "Marina Alves",
+      username: "marina",
+      profileName: "Marina",
+      email: "marina@kurio.test",
+      referralCode: "KURIO",
+      ensName: "marina",
+      ...overrides,
+    };
+    await this.page.locator("#collector-displayName").fill(values.displayName);
+    await this.page.locator("#collector-username").fill(values.username);
+    await this.page.locator("#collector-profileName").fill(values.profileName);
+    await this.page.locator("#collector-email").fill(values.email);
+    await this.page.locator("#collector-referral").fill(values.referralCode);
+    await this.page.locator("#collector-ens").fill(values.ensName);
+  }
+
   /**
    * Cliente logado, com `slug` no carrinho e a carteira principal conectada, na tela de pagamento
    * e com "Confirmar compra" liberado.
@@ -146,6 +165,7 @@ export class Kurio {
     await this.addToCart(slug);
     await this.page.goto("/checkout");
     await this.connectWallet("Carteira principal");
+    await this.fillCollector();
     await expect(this.page.getByRole("button", { name: "Confirmar compra" })).toBeEnabled();
   }
 

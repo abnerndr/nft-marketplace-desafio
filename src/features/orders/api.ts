@@ -42,12 +42,24 @@ export function useOrder(id: string) {
   });
 }
 
+export type PlaceOrderCollector = {
+  displayName: string;
+  username: string;
+  profileName: string;
+  email: string;
+  referralCode: string;
+  ensName: string;
+  secondaryAddress?: string;
+  note?: string;
+};
+
 export type PlaceOrderInput = {
   walletId: string;
   couponCode: string | null;
   lines: CartLine[];
   /** Cotação que o usuário revisou na tela. */
   reviewed: Quote;
+  collector: PlaceOrderCollector;
 };
 
 export type PlaceOrderResult = { kind: "changed"; quote: Quote } | { kind: "placed"; order: Order };
@@ -101,9 +113,9 @@ export async function recoverOrderAttempt(attempt: OrderAttempt): Promise<Order>
  */
 export async function submitPlaceOrder(
   attempt: { current: OrderAttempt | null },
-  { walletId, couponCode, lines, reviewed }: PlaceOrderInput,
+  { walletId, couponCode, lines, reviewed, collector }: PlaceOrderInput,
 ): Promise<PlaceOrderResult> {
-  const body = JSON.stringify({ walletId, couponCode, quoteVersion: reviewed.version });
+  const body = JSON.stringify({ walletId, couponCode, quoteVersion: reviewed.version, collector });
   const identity = captureSessionIdentity();
   if (!identity.userId) throw new CancelledError({ silent: true });
 

@@ -58,11 +58,26 @@ function cartVersion(revision?: number): number {
   return result.quote.version;
 }
 
+const COLLECTOR = {
+  displayName: "Marina Alves",
+  username: "marina",
+  profileName: "Marina",
+  email: "marina@kurio.test",
+  referralCode: "KURIO",
+  ensName: "marina",
+};
+
 function placeOrder(key: string | undefined, body: Record<string, unknown> = {}) {
   return call("/orders", {
     method: "POST",
     key,
-    body: JSON.stringify({ walletId: WALLET, couponCode: null, quoteVersion: cartVersion(), ...body }),
+    body: JSON.stringify({
+      walletId: WALLET,
+      couponCode: null,
+      quoteVersion: cartVersion(),
+      collector: COLLECTOR,
+      ...body,
+    }),
   });
 }
 

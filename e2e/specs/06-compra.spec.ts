@@ -33,6 +33,8 @@ test.describe("compra completa: do catálogo ao recibo confirmado", () => {
 
     await kurio.connectWallet("Carteira principal");
     await expect(summary(page).getByText("1.71 ETH")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Confirmar compra" })).toBeDisabled();
+    await kurio.fillCollector();
     await expect(page.getByRole("button", { name: "Confirmar compra" })).toBeEnabled();
     await page.getByRole("button", { name: "Confirmar compra" }).click();
 
@@ -67,6 +69,7 @@ test.describe("compra completa: do catálogo ao recibo confirmado", () => {
     await kurio.addToCart(SAGE.slug);
     await page.goto("/checkout");
     await kurio.connectWallet("Carteira principal");
+    await kurio.fillCollector();
     await page.getByRole("button", { name: "Confirmar compra" }).click();
     await expect(page.getByRole("heading", { name: "Seus NFTs agora estão na sua carteira" })).toBeVisible();
     const receiptUrl = page.url();
@@ -94,6 +97,7 @@ test.describe("compra completa: do catálogo ao recibo confirmado", () => {
     await page.getByRole("link", { name: "Conectar e finalizar" }).click();
     await expect(page).toHaveURL(/\/checkout$/);
     await kurio.connectWallet("Carteira principal");
+    await kurio.fillCollector();
     // 2 x 1.19 = 2.38; desconto 0.238; taxa 0.02; total 2.162.
     await expect(summary(page).getByText("2.162 ETH")).toBeVisible();
     await page.getByRole("button", { name: "Confirmar compra" }).click();

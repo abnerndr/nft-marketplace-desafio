@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse } from "msw";
 import { sameOrderAttempt } from "@/features/orders/idempotency";
-import type { Order, OrderItem } from "@/shared/domain/contracts";
+import { orderCollectorSchema, type Order, type OrderItem } from "@/shared/domain/contracts";
 import { getDatabase, saveDatabase } from "../db";
 import { commitInventory, releaseInventory, reserveInventory } from "../inventory";
 import { getScenario, ORDER_TIMEOUT_DELAY_MS } from "../scenarios";
@@ -83,19 +83,35 @@ function readItems(userId: string): OrderItem[] {
   });
 }
 
-type OrderBody = { walletId: string; couponCode: string | null; quoteVersion: number | null };
+type OrderBody = {
+  walletId: string;
+  couponCode: string | null;
+  quoteVersion: number | null;
+  collector: ReturnType<typeof orderCollectorSchema.parse> | null;
+  collectorFields?: Record<string, string>;
+};
 
 function parseBody(raw: string): OrderBody {
   try {
     const parsed: unknown = JSON.parse(raw);
     const body = typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
+    const collectorParsed = orderCollectorSchema.safeParse(body.collector);
     return {
       walletId: typeof body.walletId === "string" ? body.walletId : "",
       couponCode: typeof body.couponCode === "string" && body.couponCode !== "" ? body.couponCode : null,
       quoteVersion: typeof body.quoteVersion === "number" ? body.quoteVersion : null,
+      collector: collectorParsed.success ? collectorParsed.data : null,
+      collectorFields: collectorParsed.success
+        ? undefined
+        : Object.fromEntries(
+            (collectorParsed.error?.issues ?? []).map((issue) => [
+              String(issue.path[0] ?? "collector"),
+              issue.message,
+            ]),
+          ),
     };
   } catch {
-    return { walletId: "", couponCode: null, quoteVersion: null };
+    return { walletId: "", couponCode: null, quoteVersion: null, collector: null };
   }
 }
 
@@ -130,6 +146,14 @@ export const orderHandlers = [
     }
 
     const body = parseBody(rawBody);
+    if (!body.collector) {
+      return errorResponse(
+        422,
+        "validation",
+        "Complete o perfil do colecionador.",
+        body.collectorFields ?? { collector: "Complete o perfil do colecionador." },
+      );
+    }
     const wallet = (db.wallets[user.id] ?? []).find((candidate) => candidate.id === body.walletId);
     if (!wallet || wallet.connected !== true) {
       return errorResponse(422, "wallet_not_connected", "Conecte uma carteira para pagar.", {
@@ -172,7 +196,7 @@ export const orderHandlers = [
     const record: OrderRecord = {
       id: orderId,
       status: scenario === "payment-declined" ? "declined" : scenario === "order-timeout" ? "pending" : "confirmed",
-      snapshot: { ...result.quote, items, couponCode: body.couponCode },
+      snapshot: { ...result.quote, items, couponCode: body.couponCode, collector: body.collector },
       txRef: null,
       wallet: { label: wallet.label, address: wallet.address, network: wallet.network },
       createdAt: new Date().toISOString(),

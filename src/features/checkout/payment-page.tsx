@@ -1,6 +1,8 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { CollectorFields } from "@/features/checkout/collector-fields";
+import { emptyCollector, type CollectorInput } from "@/features/checkout/types";
 import backArrow from "@/assets/cart/back-arrow.svg";
 import backCircle from "@/assets/cart/back-circle.svg";
 import arrowDown from "@/assets/checkout/arrow-down.svg";
@@ -473,7 +475,14 @@ export function PaymentPage() {
   const [accepted, setAccepted] = useState<Quote | null>(null);
   const [recovering, setRecovering] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [collectorValid, setCollectorValid] = useState(false);
+  const collectorRef = useRef<CollectorInput>(emptyCollector());
   const recoveryStarted = useRef(false);
+
+  const onCollectorValidity = useCallback((valid: boolean, value: CollectorInput) => {
+    setCollectorValid(valid);
+    collectorRef.current = value;
+  }, []);
 
   const walletList = wallets.data ?? [];
   const selected = walletList.find((wallet) => wallet.id === pickedId) ?? walletList.find((wallet) => wallet.connected) ?? null;
@@ -483,8 +492,10 @@ export function PaymentPage() {
     place.isError && place.error instanceof Error && place.error.message === ORDER_OUTCOME_UNKNOWN;
   const placeError = place.isError && !unknownBlocked ? readApiError(place.error) : null;
   const activeAttempt = userId ? readOrderAttempt(userId) : null;
+  const needsReview = Boolean(changed) || (reviewed !== null && quote.data !== undefined && quote.data.version !== reviewed.version);
   const canConfirm =
-    (Boolean(activeAttempt) || (selected?.connected === true && reviewed !== null && changed === null)) &&
+    (Boolean(activeAttempt) ||
+      (selected?.connected === true && reviewed !== null && !needsReview && collectorValid)) &&
     cart.lines.length > 0 &&
     !recovering;
 
@@ -561,10 +572,16 @@ export function PaymentPage() {
         });
       return;
     }
-    if (!selected || !reviewed) return;
+    if (!selected || !reviewed || !collectorValid) return;
     submitting.current = true;
     place.mutate(
-      { walletId: selected.id, couponCode: cart.couponCode, lines: cart.lines, reviewed },
+      {
+        walletId: selected.id,
+        couponCode: cart.couponCode,
+        lines: cart.lines,
+        reviewed,
+        collector: collectorRef.current,
+      },
       {
         onSuccess: (result) => {
           if (result.kind === "placed") {
@@ -626,8 +643,15 @@ export function PaymentPage() {
         <EmptyCheckout />
       ) : (
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
-          <div className="flex flex-col gap-8 lg:w-[470px]">
-            <h2 className="hidden text-[17px] font-bold leading-4 text-foreground lg:block">Perfil do colecionador</h2>
+          <div className="flex flex-col gap-8 lg:w-[763px]">
+            {userId ? (
+              <CollectorFields
+                userId={userId}
+                wallet={selected}
+                apiErrors={placeError?.fields}
+                onValidityChange={onCollectorValidity}
+              />
+            ) : null}
             <WalletsSection wallets={walletList} selectedId={selected?.id ?? null} onSelect={setPickedId} />
             <AddWalletForm onAdded={(wallet) => setPickedId(wallet.id)} />
           </div>

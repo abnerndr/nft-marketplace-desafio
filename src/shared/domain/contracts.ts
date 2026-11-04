@@ -96,10 +96,22 @@ export const orderItemSchema = z.object({
   priceEth: z.string(),
 });
 
+export const orderCollectorSchema = z.object({
+  displayName: z.string(),
+  username: z.string(),
+  profileName: z.string(),
+  email: z.string(),
+  referralCode: z.string(),
+  ensName: z.string(),
+  secondaryAddress: z.string().optional(),
+  note: z.string().optional(),
+});
+
 /** Cotação mais itens e cupom, como estavam na criação do pedido. */
 export const orderSnapshotSchema = quoteSchema.extend({
   items: z.array(orderItemSchema),
   couponCode: z.string().nullable(),
+  collector: orderCollectorSchema.optional(),
 });
 
 export const orderSchema = z.object({
