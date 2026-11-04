@@ -67,34 +67,41 @@ function forgetAttempt(attempt: { current: OrderAttempt | null }): void {
  * reload de `/checkout` reenvia a mesma chave e o mesmo corpo. Corpo diferente (outra carteira,
  * outra revisão) é outra tentativa, com chave nova.
  */
+export async function submitPlaceOrder(
+  attempt: { current: OrderAttempt | null },
+  { walletId, couponCode, lines, reviewed }: PlaceOrderInput,
+): Promise<PlaceOrderResult> {
+  const body = JSON.stringify({ walletId, couponCode, quoteVersion: reviewed.version });
+
+  const identity = captureSessionIdentity();
+  if (!attempt.current || !sameOrderAttempt(attempt.current.body, body)) {
+    const fresh = await requestQuote(toQuoteItems(lines), couponCode, undefined, reviewed.version);
+    if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
+    if (fresh.version !== reviewed.version) return { kind: "changed", quote: fresh };
+    attempt.current = resolveOrderAttempt(body);
+  }
+
+  if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
+  try {
+    const { data } = await api.post("/orders", body, {
+      headers: { "Idempotency-Key": attempt.current.key, "Content-Type": "application/json" },
+    });
+    if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
+    forgetAttempt(attempt);
+    return { kind: "placed", order: orderSchema.parse(data) };
+  } catch (error) {
+    if (error instanceof CancelledError) throw error;
+    if (!outcomeUnknown(error)) forgetAttempt(attempt);
+    throw error;
+  }
+}
+
 export function usePlaceOrder() {
   const client = useQueryClient();
   const attempt = useRef<OrderAttempt | null>(readOrderAttempt());
 
   return useMutation({
-    mutationFn: async ({ walletId, couponCode, lines, reviewed }: PlaceOrderInput): Promise<PlaceOrderResult> => {
-      const body = JSON.stringify({ walletId, couponCode, quoteVersion: reviewed.version });
-
-      const identity = captureSessionIdentity();
-      if (!attempt.current || !sameOrderAttempt(attempt.current.body, body)) {
-        const fresh = await requestQuote(toQuoteItems(lines), couponCode, undefined, reviewed.version);
-        if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
-        if (fresh.version !== reviewed.version) return { kind: "changed", quote: fresh };
-        attempt.current = resolveOrderAttempt(body);
-      }
-
-      if (!isCurrentSession(identity)) throw new CancelledError({ silent: true });
-      try {
-        const { data } = await api.post("/orders", body, {
-          headers: { "Idempotency-Key": attempt.current.key, "Content-Type": "application/json" },
-        });
-        forgetAttempt(attempt);
-        return { kind: "placed", order: orderSchema.parse(data) };
-      } catch (error) {
-        if (!outcomeUnknown(error)) forgetAttempt(attempt);
-        throw error;
-      }
-    },
+    mutationFn: (input: PlaceOrderInput) => submitPlaceOrder(attempt, input),
     onMutate: () => captureSessionIdentity(),
     onSuccess: (result, _vars, identity) => {
       if (!isCurrentSession(identity) || !identity.userId || result.kind !== "placed") return;

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { CancelledError, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CancelledError, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useSession } from "@/features/auth/session";
 import {
@@ -43,6 +43,21 @@ type FavoriteContext = {
   snapshot: string[] | undefined;
 };
 
+/** Atualização otimista. Depois de cancelar leituras, a sessão pode já ter mudado. */
+export async function prepareFavoriteToggle(
+  client: QueryClient,
+  target: string,
+  identity: SessionIdentity,
+): Promise<FavoriteContext> {
+  if (!identity.userId) return { identity, key: ["favorites", "anonymous"], snapshot: undefined };
+  const scoped = favoritesKey(identity.userId);
+  await client.cancelQueries({ queryKey: scoped });
+  if (!isCurrentSession(identity)) return { identity, key: scoped, snapshot: undefined };
+  const snapshot = client.getQueryData<string[]>(scoped);
+  client.setQueryData<string[]>(scoped, toggleFavoriteList(snapshot ?? [], target));
+  return { snapshot, identity, key: scoped };
+}
+
 /** Favoritos do usuário logado e a ação de alternar um NFT, com atualização otimista. */
 export function useFavorite(slug: string) {
   const client = useQueryClient();
@@ -60,15 +75,7 @@ export function useFavorite(slug: string) {
 
   const mutation = useMutation({
     mutationFn: persistFavorite,
-    onMutate: async ({ slug: target }): Promise<FavoriteContext> => {
-      const identity = captureSessionIdentity();
-      if (!identity.userId) return { identity, key, snapshot: undefined };
-      const scoped = favoritesKey(identity.userId);
-      await client.cancelQueries({ queryKey: scoped });
-      const snapshot = client.getQueryData<string[]>(scoped);
-      client.setQueryData<string[]>(scoped, toggleFavoriteList(snapshot ?? [], target));
-      return { snapshot, identity, key: scoped };
-    },
+    onMutate: ({ slug: target }) => prepareFavoriteToggle(client, target, captureSessionIdentity()),
     onError: (error, _variables, context) => {
       if (!context || !isCurrentSession(context.identity)) return;
       client.setQueryData(context.key, context.snapshot);
