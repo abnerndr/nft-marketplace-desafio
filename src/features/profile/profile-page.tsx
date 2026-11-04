@@ -78,7 +78,7 @@ function AvatarControls({ profile }: { profile: Profile }) {
       <p id="avatar-label" className="text-[15px] leading-[15px] text-foreground">
         Avatar
       </p>
-      <div className="flex items-center gap-6">
+      <div className="flex flex-wrap items-center gap-4 sm:gap-6">
         <div className="flex size-[50px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-[#2f1d15]">
           {profile.avatarUrl ? (
             <img src={profile.avatarUrl} alt={`Avatar de ${profile.name}`} className="size-full object-cover" />
@@ -86,7 +86,7 @@ function AvatarControls({ profile }: { profile: Profile }) {
             <img src={avatarPlaceholder} alt="" aria-hidden="true" className="block size-6" />
           )}
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-5">
           <input
             ref={input}
             type="file"
@@ -197,7 +197,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
         Perfil do colecionador
       </h1>
 
-      <div className="grid gap-x-7 gap-y-6 md:grid-cols-2">
+      <div className="grid gap-x-7 gap-y-6 lg:grid-cols-2">
         <TextField
           label="Nome de exibição"
           name="name"

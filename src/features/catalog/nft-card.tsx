@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import heartSmall from "@/assets/nft/heart-small.svg";
 import { useFavorite } from "@/features/favorites/use-favorite";
+import { readApiError } from "@/shared/api/errors";
 import { formatEth } from "@/shared/domain/money";
 import type { NftSummary } from "@/shared/domain/contracts";
 
@@ -33,6 +34,14 @@ export function NftCard({ nft }: { nft: NftSummary }) {
       >
         <img src={heartSmall} alt="" />
       </button>
+      {favorite.isError ? (
+        <p role="alert" className="absolute top-[48px] right-2 left-2 z-10 rounded bg-surface-card/95 p-2 text-xs text-text-coral">
+          {readApiError(favorite.error).message}{" "}
+          <button type="button" className="underline" onClick={favorite.retry}>
+            Tentar novamente
+          </button>
+        </p>
+      ) : null}
       <div className="flex flex-col gap-[6px] px-2 sm:gap-3 sm:px-0">
         <h3 className="text-[15px] font-normal leading-4 text-foreground sm:text-base">
           <Link

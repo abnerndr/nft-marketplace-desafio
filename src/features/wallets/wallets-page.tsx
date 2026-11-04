@@ -136,6 +136,12 @@ function EditWalletForm({ wallet, onDone }: { wallet: Wallet; onDone: () => void
   const [label, setLabel] = useState(wallet.label);
   const [address, setAddress] = useState(wallet.address);
   const [network, setNetwork] = useState(wallet.network);
+  const [alias, setAlias] = useState(wallet.alias ?? "");
+  const [profileName, setProfileName] = useState(wallet.profileName ?? "");
+  const [secondaryAddress, setSecondaryAddress] = useState(wallet.secondaryAddress ?? "");
+  const [referralCode, setReferralCode] = useState(wallet.referralCode ?? "");
+  const [email, setEmail] = useState(wallet.email ?? "");
+  const [ens, setEns] = useState(wallet.ens ?? "");
   const [localErrors, setLocalErrors] = useState<Fields>({});
 
   const error = update.error ? readApiError(update.error) : null;
@@ -153,14 +159,25 @@ function EditWalletForm({ wallet, onDone }: { wallet: Wallet; onDone: () => void
     if (Object.keys(found).length > 0 || !isWalletNetwork(network)) return;
 
     update.mutate(
-      { id: wallet.id, label, address, network },
+      {
+        id: wallet.id,
+        label,
+        address,
+        network,
+        alias: alias.trim() || undefined,
+        profileName: profileName.trim() || undefined,
+        secondaryAddress: secondaryAddress.trim() || undefined,
+        referralCode: referralCode.trim() || undefined,
+        email: email.trim() || undefined,
+        ens: ens.trim() || undefined,
+      },
       { onSuccess: onDone },
     );
   }
 
   return (
     <form noValidate onSubmit={handleSubmit} aria-label={`Editar ${wallet.label}`} className="flex flex-col gap-4">
-      <div className="grid gap-x-7 gap-y-4 md:grid-cols-2">
+      <div className="grid gap-x-7 gap-y-4 lg:grid-cols-2">
         <TextField
           label="Nome de exibição"
           name="edit-label"
@@ -170,6 +187,13 @@ function EditWalletForm({ wallet, onDone }: { wallet: Wallet; onDone: () => void
           value={label}
           onChange={(event) => setLabel(event.target.value)}
           error={errors.label}
+        />
+        <TextField
+          label="Apelido da carteira"
+          name="edit-alias"
+          value={alias}
+          onChange={(event) => setAlias(event.target.value)}
+          error={errors.alias}
         />
         <SelectField
           label="Rede"
@@ -187,7 +211,14 @@ function EditWalletForm({ wallet, onDone }: { wallet: Wallet; onDone: () => void
             </option>
           ))}
         </SelectField>
-        <div className="md:col-span-2">
+        <TextField
+          label="Nome do perfil"
+          name="edit-profileName"
+          value={profileName}
+          onChange={(event) => setProfileName(event.target.value)}
+          error={errors.profileName}
+        />
+        <div className="lg:col-span-2">
           <TextField
             label="Endereço da carteira"
             name="edit-address"
@@ -199,6 +230,35 @@ function EditWalletForm({ wallet, onDone }: { wallet: Wallet; onDone: () => void
             error={errors.address}
           />
         </div>
+        <TextField
+          label="Endereço secundário"
+          name="edit-secondaryAddress"
+          value={secondaryAddress}
+          onChange={(event) => setSecondaryAddress(event.target.value)}
+          error={errors.secondaryAddress}
+        />
+        <TextField
+          label="Código de indicação"
+          name="edit-referralCode"
+          value={referralCode}
+          onChange={(event) => setReferralCode(event.target.value)}
+          error={errors.referralCode}
+        />
+        <TextField
+          label="E-mail"
+          name="edit-email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          error={errors.email}
+        />
+        <TextField
+          label="ENS"
+          name="edit-ens"
+          value={ens}
+          onChange={(event) => setEns(event.target.value)}
+          error={errors.ens}
+        />
       </div>
       {formError ? (
         <p role="alert" className="text-sm text-text-coral">

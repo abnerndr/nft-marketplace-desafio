@@ -401,7 +401,7 @@ type PromoProps = {
 
 function Promo({ title, text, image, imageAlt, search }: PromoProps) {
   return (
-    <article className="relative flex min-h-[250px] flex-col overflow-hidden rounded-lg bg-surface-card sm:flex-row sm:items-center">
+    <article className="relative flex min-h-[250px] flex-col overflow-hidden rounded-lg bg-surface-card lg:flex-row lg:items-center">
       <img
         src={promoMask}
         alt=""
@@ -411,9 +411,9 @@ function Promo({ title, text, image, imageAlt, search }: PromoProps) {
       <img
         src={image}
         alt={imageAlt}
-        className="relative h-[250px] w-full rounded-[18px] object-cover sm:-ml-1 sm:w-[292px] sm:shrink-0"
+        className="relative h-[250px] w-full rounded-[18px] object-cover lg:-ml-1 lg:w-[292px] lg:shrink-0"
       />
-      <div className="relative flex flex-1 flex-col items-start gap-4 p-5 sm:items-end sm:pr-[30px] sm:text-right">
+      <div className="relative flex flex-1 flex-col items-start gap-4 p-5 lg:items-end lg:pr-[30px] lg:text-right">
         <h2 className="text-lg font-bold leading-6 text-foreground">
           {title[0]}
           <br />

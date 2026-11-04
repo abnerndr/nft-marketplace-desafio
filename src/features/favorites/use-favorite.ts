@@ -101,5 +101,15 @@ export function useFavorite(slug: string) {
     mutation.mutate({ slug, favorite: !isFavorite });
   }
 
-  return { isFavorite, isPending: mutation.isPending, toggle };
+  return {
+    isFavorite,
+    isPending: mutation.isPending || list.isPending,
+    isError: mutation.isError || list.isError,
+    error: mutation.error ?? list.error,
+    retry: () => {
+      if (list.isError) void list.refetch();
+      if (mutation.isError) mutation.reset();
+    },
+    toggle,
+  };
 }

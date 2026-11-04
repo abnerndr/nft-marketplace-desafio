@@ -189,7 +189,15 @@ export const walletHandlers = [
     }
 
     const editing =
-      body.label !== undefined || body.address !== undefined || body.network !== undefined;
+      body.label !== undefined ||
+      body.address !== undefined ||
+      body.network !== undefined ||
+      body.alias !== undefined ||
+      body.profileName !== undefined ||
+      body.secondaryAddress !== undefined ||
+      body.referralCode !== undefined ||
+      body.email !== undefined ||
+      body.ens !== undefined;
     if (!editing && action !== "set-primary") {
       return errorResponse(422, "validation", "Ação inválida.", {
         action: "Use connect, reject, disconnect ou set-primary.",
@@ -200,9 +208,22 @@ export const walletHandlers = [
       const nextLabel = body.label === undefined ? wallet.label : readText(body, "label");
       const nextNetwork = body.network === undefined ? wallet.network : body.network;
       const nextAddress = body.address === undefined ? wallet.address : readText(body, "address");
+      const alias = body.alias === undefined ? (wallet.alias ?? "") : readText(body, "alias");
+      const profileName =
+        body.profileName === undefined ? (wallet.profileName ?? "") : readText(body, "profileName");
+      const secondaryAddress =
+        body.secondaryAddress === undefined
+          ? (wallet.secondaryAddress ?? "")
+          : readText(body, "secondaryAddress");
+      const referralCode =
+        body.referralCode === undefined ? (wallet.referralCode ?? "") : readText(body, "referralCode");
+      const email = body.email === undefined ? (wallet.email ?? "") : readText(body, "email");
+      const ens = body.ens === undefined ? (wallet.ens ?? "") : readText(body, "ens");
       const fields: Record<string, string> = {};
       if (nextLabel === "") fields.label = "Informe um nome para a carteira.";
       else if (nextLabel.length > MAX_LABEL_LENGTH) fields.label = `Use até ${MAX_LABEL_LENGTH} caracteres.`;
+      if (alias.length > MAX_EXTRA_LENGTH) fields.alias = `Use até ${MAX_EXTRA_LENGTH} caracteres.`;
+      if (profileName.length > MAX_EXTRA_LENGTH) fields.profileName = `Use até ${MAX_EXTRA_LENGTH} caracteres.`;
       if (!isWalletNetwork(nextNetwork)) fields.network = "Escolha uma rede.";
       else if (nextAddress === "") fields.address = "Informe o endereço da carteira.";
       else if (!isValidWalletAddress(nextNetwork, nextAddress)) {
@@ -224,6 +245,12 @@ export const walletHandlers = [
       wallet.label = nextLabel;
       wallet.address = nextAddress;
       wallet.network = nextNetwork;
+      wallet.alias = alias || undefined;
+      wallet.profileName = profileName || undefined;
+      wallet.secondaryAddress = secondaryAddress || undefined;
+      wallet.referralCode = referralCode || undefined;
+      wallet.email = email || undefined;
+      wallet.ens = ens || undefined;
     }
 
     saveDatabase();
