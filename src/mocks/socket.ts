@@ -9,8 +9,8 @@ import {
   type OrderUpdatedEvent,
 } from "@/features/realtime/socket";
 import { getDatabase, saveDatabase } from "./db";
-import { commitInventory, releaseInventory } from "./inventory";
 import { applyPriceChange, nftVersionOf, raisedPrice } from "./nft-version";
+import { commitNftUpdate, transitionMockOrder } from "./resource-events";
 import { getScenario } from "./scenarios";
 
 /** Quanto o cenário `price-changed` espera antes de empurrar a mudança de preço. */
@@ -155,10 +155,11 @@ export function emitSocketEvent(type: string, payload?: unknown): void {
     // Evento endereçado a uma sessão sem socket aberto só testa a entrega: não mexe no banco.
     const addressable = parsed.success && (parsed.data.userId === undefined || hasPeer(parsed.data.userId));
     if (parsed.success && addressable) {
-      applyPriceChange({
+      commitNftUpdate({
         slug: parsed.data.resource.slug,
         priceEth: parsed.data.resource.priceEth,
         version: parsed.data.version,
+        available: parsed.data.resource.available,
       });
     }
   }
@@ -166,25 +167,31 @@ export function emitSocketEvent(type: string, payload?: unknown): void {
   if (type === "order.updated") {
     const parsed = orderUpdatedSchema.safeParse(payload);
     if (parsed.success) {
-      const db = getDatabase();
-      const record = db.orders.find((order) => order.id === parsed.data.resource.id);
-      // Só avança pending → confirmed|declined; não regride terminal. Task 6 formaliza transitionMockOrder.
-      if (record && record.status === "pending") {
-        const next = parsed.data.resource.status;
-        if (next === "confirmed" || next === "declined") {
-          record.status = next;
-          record.txRef = parsed.data.resource.txRef ?? record.txRef;
-          // Estoque acompanha o evento; limpeza do carrinho fica no confirm HTTP (GET/POST)
-          // para não impedir marcadores de teste que ainda leem o carrinho (`emit("nft.updated")`).
-          if (next === "confirmed") commitInventory(record.id);
-          else releaseInventory(record.id);
-          saveDatabase();
-        }
+      const next = parsed.data.resource.status;
+      if (next === "confirmed" || next === "declined") {
+        transitionMockOrder(parsed.data.resource.id, next, parsed.data.resource.txRef);
       }
     }
   }
 
   send(type, payload);
+}
+
+/** Fecha o transporte Socket.IO de todos os peers (teste de queda real). */
+export function disconnectSocket(): void {
+  for (const peer of [...peers]) {
+    try {
+      peer.io.client.close();
+    } catch {
+      // peer já fechado
+    }
+    peers.delete(peer);
+  }
+}
+
+/** Reabre conexões — o cliente React chama `connect` de novo via `useRealtime` após invalidação. */
+export function reconnectSocket(): void {
+  // O cliente detecta a queda e o `onConnect` reconcilia via REST. Sem setters manuais.
 }
 
 export const socketHandlers = [

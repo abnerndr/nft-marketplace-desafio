@@ -2,7 +2,7 @@ import { setupWorker } from "msw/browser";
 import { initMockState, resetDatabase, setScenario } from "./db";
 import { handlers } from "./handlers";
 import { isScenarioId, type ScenarioId } from "./scenarios";
-import { emitSocketEvent, socketHandlers } from "./socket";
+import { disconnectSocket, emitSocketEvent, reconnectSocket, socketHandlers } from "./socket";
 
 export const worker = setupWorker(...handlers, ...socketHandlers);
 
@@ -10,6 +10,8 @@ export type KurioMockControls = {
   reset: () => void;
   setScenario: (id: ScenarioId) => void;
   emit: (type: string, payload?: unknown) => void;
+  disconnectSocket: () => void;
+  reconnectSocket: () => void;
 };
 
 declare global {
@@ -36,6 +38,8 @@ export async function enableMocks(): Promise<void> {
       window.dispatchEvent(new CustomEvent(MOCK_EVENT, { detail: { type, payload } }));
       emitSocketEvent(type, payload);
     },
+    disconnectSocket,
+    reconnectSocket,
   };
 
   await worker.start();

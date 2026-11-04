@@ -10,18 +10,18 @@ test.describe("alteração de preço pelo Socket.IO durante o checkout", () => {
     await kurio.checkoutReady("marina", SAGE.slug);
     await expect(summary(page).getByText("1.71 ETH", { exact: true })).toBeVisible();
 
-    // +10% no primeiro item do carrinho: 1.69 -> 1.86, pelo transporte Socket.IO do mock.
+    // +10% no primeiro item do carrinho: 1.69 -> 1.859, pelo transporte Socket.IO do mock.
     await kurio.emit("nft.updated");
 
     await expect(notice(page)).toHaveCount(1);
     await expect(notice(page)).toContainText(SAGE.title);
     await expect(notice(page)).toContainText("1.69 ETH");
-    await expect(notice(page)).toContainText("1.86 ETH");
-    await expect(summary(page).getByText("1.88 ETH", { exact: true })).toBeVisible();
+    await expect(notice(page)).toContainText("1.859 ETH");
+    await expect(summary(page).getByText("1.879 ETH", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Confirmar compra" }).click();
     await expect(page.getByRole("heading", { name: "Seus NFTs agora estão na sua carteira" })).toBeVisible();
-    await expect(page.getByRole("article").getByText("1.88 ETH").first()).toBeVisible();
+    await expect(page.getByRole("article").getByText("1.879 ETH").first()).toBeVisible();
     const db = await kurio.db();
     expect(db.orders).toHaveLength(1);
     expect(db.orders[0].status).toBe("confirmed");
@@ -35,13 +35,13 @@ test.describe("alteração de preço pelo Socket.IO durante o checkout", () => {
     await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.69 ETH");
 
     await kurio.emit("nft.updated");
-    await expect(notice(page)).toContainText("1.86 ETH");
-    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.86 ETH");
+    await expect(notice(page)).toContainText("1.859 ETH");
+    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.859 ETH");
     await expect(page.getByRole("list", { name: "Itens do carrinho" })).not.toContainText("1.69 ETH");
 
     await notice(page).getByRole("button", { name: "Entendi" }).click();
     await expect(notice(page)).toHaveCount(0);
-    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.86 ETH");
+    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.859 ETH");
   });
 
   test("mudança entre a revisão e a confirmação pede nova confirmação e não cria pedido velho", async ({ kurio, page }) => {
@@ -56,7 +56,7 @@ test.describe("alteração de preço pelo Socket.IO durante o checkout", () => {
 
     const changed = page.getByRole("alert").filter({ hasText: "Os valores mudaram desde a sua revisão." });
     await expect(changed).toBeVisible();
-    await expect(changed).toContainText("1.88 ETH");
+    await expect(changed).toContainText("1.879 ETH");
     await expect(confirm).toBeDisabled();
     expect((await kurio.db()).orders).toHaveLength(0);
 
@@ -66,7 +66,7 @@ test.describe("alteração de preço pelo Socket.IO durante o checkout", () => {
     await confirm.click();
 
     await expect(page.getByRole("heading", { name: "Seus NFTs agora estão na sua carteira" })).toBeVisible();
-    await expect(page.getByRole("article").getByText("1.88 ETH").first()).toBeVisible();
+    await expect(page.getByRole("article").getByText("1.879 ETH").first()).toBeVisible();
     expect((await kurio.db()).orders).toHaveLength(1);
   });
 
@@ -78,8 +78,8 @@ test.describe("alteração de preço pelo Socket.IO durante o checkout", () => {
 
     // O mock espera 1,5 s com o socket aberto e então muda o primeiro item (+10%).
     await expect(notice(page)).toContainText(SAGE.title, { timeout: 15_000 });
-    await expect(notice(page)).toContainText("1.86 ETH");
-    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.86 ETH");
+    await expect(notice(page)).toContainText("1.859 ETH");
+    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.859 ETH");
   });
 
   test("visitante recebe nft.updated público no catálogo e no carrinho", async ({ kurio, page }) => {
@@ -90,7 +90,7 @@ test.describe("alteração de preço pelo Socket.IO durante o checkout", () => {
 
     await kurio.emit("nft.updated");
     await expect(notice(page)).toContainText(SAGE.title);
-    await expect(notice(page)).toContainText("1.86 ETH");
-    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.86 ETH");
+    await expect(notice(page)).toContainText("1.859 ETH");
+    await expect(page.getByRole("list", { name: "Itens do carrinho" })).toContainText("1.859 ETH");
   });
 });

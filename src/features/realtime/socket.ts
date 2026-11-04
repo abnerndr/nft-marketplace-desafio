@@ -5,6 +5,7 @@ import { captureSessionIdentity, isCurrentSession, privateQueryKey } from "@/fea
 import { cartQueryKey } from "@/features/cart/api";
 import { quoteQueryKey } from "@/features/cart/quote";
 import { orderQueryKey } from "@/features/orders/api";
+import { canTransitionOrder } from "@/features/orders/transitions";
 import { orderStatusSchema, type CartLine, type CartView, type NftDetail, type Order, type OrderStatus } from "@/shared/domain/contracts";
 import type { NftList } from "@/features/catalog/api";
 import { pushPriceNotice } from "./notices";
@@ -117,7 +118,9 @@ function applyNftUpdate(client: QueryClient, event: NftUpdatedEvent, userId?: st
   );
   patchCartPrices(client, cartQueryKey, slug, priceEth, event.version);
   if (userId) patchCartPrices(client, privateQueryKey(userId, "cart"), slug, priceEth, event.version);
-  // Carrinho e cotação vêm do servidor: refaz para o resumo e a próxima `version` acompanharem o preço.
+  // Carrinho, cotação e listas com filtros/ordenação: invalidar para o item mudar de posição/sumir do maxPrice.
+  void client.invalidateQueries({ queryKey: ["nfts"] });
+  void client.invalidateQueries({ queryKey: ["nft", slug] });
   void client.invalidateQueries({ queryKey: cartQueryKey });
   void client.invalidateQueries({ queryKey: quoteQueryKey });
   if (userId) {
@@ -142,10 +145,14 @@ function applyOrderUpdate(client: QueryClient, event: OrderUpdatedEvent, known: 
     if (!old) return old;
     const current = Math.max(known ?? 0, orderVersion(old.status));
     if (!shouldApplyVersion(current, event.version)) return old;
+    // Terminalidade: confirmed/declined não voltam a pending mesmo com versão maior.
+    if (old.status !== status && !canTransitionOrder(old.status, status)) return old;
     return { ...old, status, txRef: txRef ?? old.txRef };
   });
   // Pedido confirmado baixa o carrinho e o estoque.
   void client.invalidateQueries({ queryKey: privateQueryKey(userId, "cart") });
+  void client.invalidateQueries({ queryKey: ["nft"] });
+  void client.invalidateQueries({ queryKey: ["nfts"] });
 }
 
 /**
