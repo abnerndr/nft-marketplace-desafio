@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(["dist"]),
+  globalIgnores(["dist", "public/mockServiceWorker.js", "evidence"]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [
@@ -24,5 +24,15 @@ export default defineConfig([
     // `use` dos fixtures do Playwright não é o hook `use` do React.
     files: ["e2e/**/*.ts", "playwright.config.ts"],
     rules: { "react-hooks/rules-of-hooks": "off" },
+  },
+  {
+    // shadcn e rotas finas exportam helpers junto com componentes.
+    files: ["src/components/ui/**/*.{ts,tsx}", "src/features/auth/auth-dialog.tsx", "src/app/router.tsx"],
+    rules: { "react-refresh/only-export-components": "off" },
+  },
+  {
+    // Recuperação de pedido / sync de galeria: setState no efeito é o padrão desejado aqui.
+    files: ["src/features/checkout/payment-page.tsx", "src/features/nft/gallery.tsx"],
+    rules: { "react-hooks/set-state-in-effect": "off" },
   },
 ]);

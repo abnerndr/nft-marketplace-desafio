@@ -13,8 +13,10 @@ src/
   mocks/       db (localStorage), seed, cenários, handlers REST, socket
 ```
 
-`src/main.tsx` chama `await enableMocks()` antes do `createRoot`. Com `VITE_ENABLE_MOCKS=false` o worker não sobe
-e o app usa a API real sem mudar uma linha de feature.
+`src/main.tsx` dispara `import("@/mocks/browser")` em paralelo ao `createRoot`: a UI pinta na hora e o worker MSW
+termina depois. Requests Axios e o Socket.IO esperam `waitForMocks()` para não falarem na rede real. Com
+`VITE_ENABLE_MOCKS=false` o worker não sobe e `markMocksReady()` libera as requests imediatamente. Telas de
+checkout, carrinho, conta, pedidos e auth entram via `React.lazy`.
 
 ## Contratos
 

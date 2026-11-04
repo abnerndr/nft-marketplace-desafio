@@ -242,7 +242,7 @@ export function ConfirmationPage({ orderId }: { orderId: string }) {
         }}
       >
         <DialogContent className="max-h-[90vh] w-[min(100%,578px)] overflow-y-auto border-0 bg-transparent p-0 shadow-none" showClose={false}>
-          <DialogTitle className="sr-only">Seus NFTs agora estão na sua carteira</DialogTitle>
+          <DialogTitle className="sr-only">Recibo do pedido</DialogTitle>
           <DialogDescription className="sr-only">Recibo da compra simulada</DialogDescription>
           <Receipt order={order.data} />
         </DialogContent>

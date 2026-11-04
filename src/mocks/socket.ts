@@ -188,7 +188,8 @@ export function disconnectSocket(): void {
   for (const peer of [...peers]) {
     try {
       const client = peer.io.client as { close?: () => void; disconnect?: () => void };
-      client.close?.() ?? client.disconnect?.();
+      if (typeof client.close === "function") client.close();
+      else if (typeof client.disconnect === "function") client.disconnect();
     } catch {
       // peer já fechado
     }

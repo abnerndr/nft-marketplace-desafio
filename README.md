@@ -63,8 +63,8 @@ responde 422).
 | --- | --- |
 | `?reset=1` | Apaga `kurio.mock` e regrava o seed. Ex.: `http://localhost:5173/?reset=1`. |
 | `?scenario=<id>` | Grava o cenário e volta ao seed dele. Ex.: `/?scenario=slow-network`. Id desconhecido é ignorado. |
-| `window.__kurio` | No console: `reset()`, `setScenario(id)` e `emit(type, payload)`. |
-| Botão **Cenários** (canto inferior direito) | Abre o painel; **Mudar preço do 1º item (+10%)** dispara `nft.updated` pelo Socket.IO mock. |
+| `window.__kurio` | No console: `reset()`, `setScenario(id)`, `switchScenario(id)`, `emit(type, payload)`, `disconnectSocket()`, `reconnectSocket()`. |
+| Botão **Cenários** | Mobile: canto inferior esquerdo (acima da nav); desktop: inferior direito. **Mudar preço do 1º item (+10%)** dispara `nft.updated` pelo Socket.IO mock. |
 
 O reset regrava só `kurio.mock`. As sessões moram nesse banco, então o token antigo em `kurio.session` deixa
 de valer e a próxima leitura da sessão devolve 401 (o app o descarta). O carrinho de visitante

@@ -89,13 +89,24 @@ async function expectProcessed(page: Page, status: number) {
 async function switchToRafael(page: Page) {
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await page.getByRole("link", { name: "Entrar", exact: true }).click();
+  // Desktop: link "Entrar" no header. Mobile: nav inferior ou rota direta.
+  const entrar = page.getByRole("link", { name: "Entrar", exact: true });
+  if (await entrar.count()) {
+    await entrar.first().click();
+  } else {
+    await page.goto("/login");
+  }
   await expect(page).toHaveURL(/\/login/);
   await page.getByRole("textbox", { name: "contato@email.com" }).fill(USERS.rafael.email);
   await page.getByLabel("Senha", { exact: true }).fill(USERS.rafael.password);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login/);
-  await page.getByRole("link", { name: USERS.rafael.name }).click();
+  const profileLink = page.getByRole("link", { name: USERS.rafael.name });
+  if (await profileLink.count()) {
+    await profileLink.first().click();
+  } else {
+    await page.goto("/account/profile");
+  }
   await expect(page).toHaveURL(/\/account\/profile$/);
   await expect(page.getByRole("main").getByRole("textbox", { name: "E-mail" })).toHaveValue(USERS.rafael.email);
   expect(await sessionOwner(page)).toBe("user-rafael");
@@ -132,11 +143,14 @@ async function expectAccountUnchanged(page: Page) {
     .getByRole("textbox", { name: "E-mail" })
     .inputValue()
     .catch(() => "");
-  const account = await page.getByRole("link", { name: USERS.rafael.name }).count();
+  // Desktop mostra o nome no header; no mobile a conta vive na nav inferior ("Conta").
+  const account =
+    (await page.getByRole("link", { name: USERS.rafael.name }).count()) +
+    (await page.getByRole("navigation", { name: "Navegação mobile" }).getByRole("link", { name: "Conta" }).count());
   expect({
     drifted,
     email,
-    account,
+    account: account > 0 ? 1 : 0,
     owner: await sessionOwner(page),
     pathname: new URL(page.url()).pathname,
   }).toEqual({

@@ -3,15 +3,14 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { lazy } from "react";
 import {
   catalogSearchSchema,
   parseSearchString,
   stringifySearch,
 } from "@/features/catalog/search";
 import { requireAuth, safeRedirect } from "@/features/auth/session";
-import { LazyRoute } from "@/app/lazy-route";
 import { AccountProfileRoute, AccountWalletsRoute } from "@/routes/account";
+import { LoginRoute, RegisterRoute } from "@/routes/auth";
 import { RootLayout } from "@/routes/__root";
 import { CartRoute } from "@/routes/cart";
 import { CheckoutRoute } from "@/routes/checkout";
@@ -19,29 +18,6 @@ import { NftRoute } from "@/routes/nft";
 import { NotFoundPage } from "@/app/not-found";
 import { HomeRoute } from "@/routes/index";
 import { OrderRoute } from "@/routes/orders";
-
-const LoginPage = lazy(() =>
-  import("@/features/auth/login-page").then((mod) => ({ default: mod.LoginPage })),
-);
-const RegisterPage = lazy(() =>
-  import("@/features/auth/register-page").then((mod) => ({ default: mod.RegisterPage })),
-);
-
-function LoginRoute() {
-  return (
-    <LazyRoute>
-      <LoginPage />
-    </LazyRoute>
-  );
-}
-
-function RegisterRoute() {
-  return (
-    <LazyRoute>
-      <RegisterPage />
-    </LazyRoute>
-  );
-}
 
 export type AuthSearch = {
   redirect?: string;

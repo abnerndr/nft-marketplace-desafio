@@ -1,8 +1,9 @@
 # Backend simulado (MSW)
 
 A rede é simulada no navegador com MSW. O estado vive em `localStorage`, na chave `kurio.mock`
-(`{ scenario, db }`). O worker é iniciado por `enableMocks()` em `src/main.tsx`, antes do `createRoot`,
-e só se `VITE_ENABLE_MOCKS !== "false"`. `VITE_DEFAULT_SCENARIO` define o cenário inicial.
+(`{ scenario, db }`). O worker sobe em paralelo ao first paint (`import("@/mocks/browser")` em
+`src/main.tsx`); Axios e Socket.IO esperam `waitForMocks()`. Com `VITE_ENABLE_MOCKS=false` o worker
+não sobe e as requests são liberadas na hora. `VITE_DEFAULT_SCENARIO` define o cenário inicial.
 
 ## Parâmetros de URL
 

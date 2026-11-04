@@ -16,6 +16,7 @@ dist-ssr
 playwright-report
 test-results
 reports
+evidence
 *.tsbuildinfo
 # Perfis temporários do Chrome/Lighthouse que o WSL às vezes materializa no cwd
 **/kurio-lighthouse-*/
