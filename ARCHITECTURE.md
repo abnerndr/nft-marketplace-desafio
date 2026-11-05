@@ -167,15 +167,16 @@ de rede real do navegador (Axios, cabeçalhos, cancelamento, erro de rede), e n�
 - **Binding Socket.IO com peer de MSW 2 sobre MSW 3.** `@mswjs/socket.io-binding` declara peer de MSW 2. O
   `package.json` usa `overrides` para apontá-lo para o MSW 3 do projeto. Funciona nos testes e no navegador, mas
   é uma combinação que o pacote não declara suportar; uma versão futura do binding deve remover o `overrides`.
-- **O mock não derruba o WebSocket.** Não há como simular queda de conexão, só falha de REST (`offline`,
-  `server-error`). A lógica de reconexão (invalidar e refazer consultas em `onConnect`) existe, mas não
-  é exercitada de ponta a ponta no navegador.
+- **Queda de Socket.IO é manual.** `window.__kurio.disconnectSocket()` fecha os peers MSW e o cliente
+  reconcilia via REST em `onConnect`. O cenário `socket-disconnect` é marcador; não há queda automática
+  só por trocar o cenário. Falhas REST continuam em `offline` / `server-error`.
 - **Baselines visuais só para Linux.** Os snapshots de `e2e/specs/13-visual.spec.ts-snapshots` foram gerados em
   Linux. Em outro sistema o spec visual falha por renderização de fonte, sem ser regressão.
-- **Cenários só registrados.** `validation-conflict` e `coupon-invalid` aceitam `?scenario=`, mas não têm
-  comportamento próprio: os erros que eles nomeiam já saem das regras normais (cadastro, cupom).
-- **Desempenho do detalhe.** Veja `docs/lighthouse/REPORT.md`: o esqueleto do detalhe é mais baixo que o
-  conteúdo e empurra o rodapé (CLS), e o bundle único de ~1,2 MB pesa no LCP móvel.
+- **Cenários só registrados.** `validation-conflict`, `coupon-invalid` e `socket-disconnect` aceitam
+  `?scenario=`, mas o comportamento útil já sai das regras normais da API ou de `window.__kurio.*`.
+- **Desempenho do detalhe (mobile).** Veja `docs/lighthouse/REPORT.md`: Performance mediana 84 no detalhe
+  mobile (LCP ~4 s sob throttling + MSW no bundle de demo). CLS do detalhe foi a 0 após o esqueleto espelhar
+  a altura real.
 
 ## Desvios conhecidos do Figma
 

@@ -34,8 +34,9 @@ cada usuário conectado e, se houver socket de visitante, no primeiro item do ca
 
 **Limitação:** o transporte é interceptado pelo MSW no navegador; não há servidor Socket.IO externo.
 Sem o worker ativo (`VITE_ENABLE_MOCKS=false`) o cliente tenta um servidor real. O mock não implementa
-salas, namespaces, ping nem reconexão com recuperação de eventos perdidos; o cliente refaz as
-consultas ao reconectar.
+salas, namespaces nem recuperação de eventos perdidos no buffer do servidor; o cliente refaz as
+consultas ao reconectar. Queda real: `window.__kurio.disconnectSocket()` (o cenário
+`socket-disconnect` só documenta o fluxo).
 
 Eventos, ambos com `{ eventId, version, resource, userId? }`:
 
