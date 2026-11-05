@@ -19,11 +19,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   useRealtime();
 
   const auth = isAuthRoute(pathname);
-  /** Bottom nav Figma em todas as rotas mobile exceto auth (página própria do frame). */
-  const showMobileNav = !auth;
+  /** Bottom nav Figma só no Início (frames de detalhe/carrinho/pagamento não têm tab bar). */
+  const showMobileNav = pathname === "/";
   const mainClassName = auth
     ? "mx-auto w-full max-w-[1200px] flex-1 px-7 sm:px-6 lg:px-0"
-    : "mx-auto w-full max-w-[1200px] flex-1 px-6 sm:px-6 pb-[calc(126px+env(safe-area-inset-bottom))] lg:px-0 lg:pb-8";
+    : showMobileNav
+      ? "mx-auto w-full max-w-[1200px] flex-1 px-6 sm:px-6 pb-[calc(126px+env(safe-area-inset-bottom))] lg:px-0 lg:pb-8"
+      : "mx-auto w-full max-w-[1200px] flex-1 px-6 sm:px-6 lg:px-0 lg:pb-8";
 
   return (
     <div className="flex min-h-screen flex-col bg-ink text-foreground">

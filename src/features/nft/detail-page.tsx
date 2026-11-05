@@ -227,7 +227,7 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-3 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(126px+env(safe-area-inset-bottom))] max-lg:z-20 max-lg:rounded-t-[40px] max-lg:bg-surface-card max-lg:px-6 max-lg:pb-5 max-lg:pt-5 max-lg:shadow-[0_0_10px_rgba(10,6,4,0.45)]">
+      <div className="flex flex-col gap-3 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-20 max-lg:rounded-t-[40px] max-lg:bg-surface-card max-lg:px-6 max-lg:pb-[max(1.25rem,env(safe-area-inset-bottom))] max-lg:pt-5 max-lg:shadow-[0_0_10px_rgba(10,6,4,0.45)]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center justify-between lg:justify-start">
             <div className="flex items-center gap-2">
