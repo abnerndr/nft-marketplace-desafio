@@ -6,6 +6,7 @@ import { api } from "@/shared/api/client";
 import { userSchema, type User } from "@/shared/domain/contracts";
 import { queryClient } from "@/shared/api/query-client";
 import { syncGuestCart, syncGuestCoupon } from "@/features/cart/sync";
+import { pushToast } from "@/shared/ui/toast";
 import { z } from "zod";
 import {
   captureSessionIdentity,
@@ -133,7 +134,10 @@ export function useLogin() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (input: LoginInput) => authenticate("/auth/login", input),
-    onSuccess: (user) => publishSession(client, user),
+    onSuccess: (user) => {
+      void publishSession(client, user);
+      pushToast(`Olá, ${user.name}`);
+    },
   });
 }
 
@@ -141,7 +145,10 @@ export function useRegister() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (input: RegisterInput) => authenticate("/auth/register", input),
-    onSuccess: (user) => publishSession(client, user),
+    onSuccess: (user) => {
+      void publishSession(client, user);
+      pushToast(`Conta criada. Bem-vindo, ${user.name}`);
+    },
   });
 }
 
@@ -168,6 +175,7 @@ export function useLogout() {
       client.setQueryData(sessionQueryKey, null);
       void client.cancelQueries({ queryKey: ["private"] });
       client.removeQueries({ queryKey: ["private"] });
+      pushToast("Você saiu da conta");
     },
   });
 }

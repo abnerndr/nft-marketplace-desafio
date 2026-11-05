@@ -29,6 +29,7 @@ import { useFavorite } from "@/features/favorites/use-favorite";
 import { readApiError } from "@/shared/api/errors";
 import type { Edition, NftDetail } from "@/shared/domain/contracts";
 import { formatEth } from "@/shared/domain/money";
+import { pushToast } from "@/shared/ui/toast";
 import { addToCart, isNotFound, isUnauthorized, nftDetailQuery } from "./api";
 import { NftGallery } from "./gallery";
 
@@ -180,6 +181,7 @@ function PurchaseBar({ nft }: { nft: NftDetail }) {
       if (!isCurrentSession(identity)) return;
       if (identity.userId) void client.invalidateQueries({ queryKey: privateQueryKey(identity.userId, "cart") });
       void client.invalidateQueries({ queryKey: cartQueryKey });
+      pushToast("Adicionado ao carrinho");
     },
     onError: (error, _input, identity) => {
       if (!identity || !isCurrentSession(identity)) return;

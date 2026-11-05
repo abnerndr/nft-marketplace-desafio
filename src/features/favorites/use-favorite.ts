@@ -10,6 +10,7 @@ import {
 } from "@/features/auth/session-identity";
 import { isUnauthorized } from "@/features/nft/api";
 import { api } from "@/shared/api/client";
+import { pushToast } from "@/shared/ui/toast";
 
 const favoritesResponseSchema = z.object({ favorites: z.array(z.string()) });
 
@@ -76,6 +77,10 @@ export function useFavorite(slug: string) {
   const mutation = useMutation({
     mutationFn: persistFavorite,
     onMutate: ({ slug: target }) => prepareFavoriteToggle(client, target, captureSessionIdentity()),
+    onSuccess: (_data, variables, context) => {
+      if (!context || !isCurrentSession(context.identity)) return;
+      if (variables.favorite) pushToast("Adicionado aos favoritos");
+    },
     onError: (error, _variables, context) => {
       if (!context || !isCurrentSession(context.identity)) return;
       client.setQueryData(context.key, context.snapshot);
