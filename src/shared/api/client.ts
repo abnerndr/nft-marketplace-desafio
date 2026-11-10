@@ -4,6 +4,7 @@ import {
   isCurrentSession,
   type SessionIdentity,
 } from "@/features/auth/session-identity";
+import { isSpaFallbackBody, reclaimMockClient } from "@/mocks/reclaim";
 import { waitForMocks } from "@/mocks/ready";
 
 export const api = axios.create({
@@ -12,7 +13,11 @@ export const api = axios.create({
 
 export type SessionStamp = { identity: SessionIdentity; token: string | null };
 
-type StampedConfig = InternalAxiosRequestConfig & { kurioSession?: SessionStamp };
+type StampedConfig = InternalAxiosRequestConfig & {
+  kurioSession?: SessionStamp;
+  /** Já tentamos de novo depois de um HTML no lugar do JSON. */
+  kurioPassthroughRetry?: boolean;
+};
 
 function readToken(): string | null {
   try {
@@ -30,6 +35,7 @@ export function requestMatchesCurrentSession(stamp: SessionStamp | undefined, to
 
 api.interceptors.request.use(async (config) => {
   await waitForMocks();
+  await reclaimMockClient();
   const token = readToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   (config as StampedConfig).kurioSession = { identity: captureSessionIdentity(), token };
@@ -63,16 +69,27 @@ export function isSessionExpiry(status: number | undefined, url: string | undefi
   return !PUBLIC_AUTH_PATHS.includes(path);
 }
 
-api.interceptors.response.use(undefined, (error: unknown) => {
-  if (isAxiosError(error) && error.config) {
-    const stamped = error.config as StampedConfig;
-    const sentToken = Boolean(stamped.kurioSession?.token ?? stamped.headers?.Authorization);
-    if (
-      isSessionExpiry(error.response?.status, error.config.url, sentToken) &&
-      requestMatchesCurrentSession(stamped.kurioSession, readToken())
-    ) {
-      unauthorizedHandler?.({ url: error.config.url ?? "" });
+api.interceptors.response.use(
+  async (response) => {
+    const config = response.config as StampedConfig;
+    if (isSpaFallbackBody(response.data) && !config.kurioPassthroughRetry) {
+      config.kurioPassthroughRetry = true;
+      await reclaimMockClient();
+      return api.request(config);
     }
-  }
-  return Promise.reject(error);
-});
+    return response;
+  },
+  (error: unknown) => {
+    if (isAxiosError(error) && error.config) {
+      const stamped = error.config as StampedConfig;
+      const sentToken = Boolean(stamped.kurioSession?.token ?? stamped.headers?.Authorization);
+      if (
+        isSessionExpiry(error.response?.status, error.config.url, sentToken) &&
+        requestMatchesCurrentSession(stamped.kurioSession, readToken())
+      ) {
+        unauthorizedHandler?.({ url: error.config.url ?? "" });
+      }
+    }
+    return Promise.reject(error);
+  },
+);

@@ -17,6 +17,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { readApiError } from "@/shared/api/errors";
 import { nftListQuery } from "./api";
+import { catalogView } from "./catalog-view";
 import { Filters } from "./filters";
 import { NftCard, NftCardSkeleton } from "./nft-card";
 import {
@@ -269,9 +270,14 @@ function Catalog({ filtersOpen, setFiltersOpen }: { filtersOpen: boolean; setFil
 
   const data = query.data;
   const pages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+  const view = catalogView({
+    isPending: query.isPending,
+    isError: query.isError,
+    itemCount: data ? data.items.length : null,
+  });
 
   let content;
-  if (query.isPending) {
+  if (view === "pending") {
     content = (
       <div className={GRID} aria-busy="true">
         {Array.from({ length: PAGE_SIZE }, (_, index) => (
@@ -279,7 +285,7 @@ function Catalog({ filtersOpen, setFiltersOpen }: { filtersOpen: boolean; setFil
         ))}
       </div>
     );
-  } else if (query.isError) {
+  } else if (view === "error") {
     content = (
       <div
         role="alert"
@@ -298,7 +304,7 @@ function Catalog({ filtersOpen, setFiltersOpen }: { filtersOpen: boolean; setFil
         </button>
       </div>
     );
-  } else if (query.data.items.length === 0) {
+  } else if (view === "empty" || !data) {
     content = (
       <div className="flex flex-col items-start gap-4 bg-surface-card p-6">
         <p className="text-foreground">Nenhum NFT encontrado para esta busca.</p>
@@ -316,13 +322,31 @@ function Catalog({ filtersOpen, setFiltersOpen }: { filtersOpen: boolean; setFil
   } else {
     content = (
       <div className="flex flex-col gap-[72px]">
+        {query.isError ? (
+          <div
+            role="alert"
+            className="flex flex-col items-start gap-3 border border-border-soft bg-surface-card p-4"
+          >
+            <p className="text-foreground">
+              Não foi possível atualizar a lista. Estes são os últimos NFTs carregados.
+            </p>
+            <button
+              type="button"
+              onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+              className={`${primaryButton} inline-flex h-10 px-4 text-base disabled:opacity-60`}
+            >
+              {query.isFetching ? "Carregando…" : "Tentar novamente"}
+            </button>
+          </div>
+        ) : null}
         <div className={GRID}>
-          {query.data.items.map((nft) => (
+          {data.items.map((nft) => (
             <NftCard key={nft.id} nft={nft} />
           ))}
         </div>
         <Pagination
-          page={query.data.page}
+          page={data.page}
           pages={pages}
           onChange={(page) => go(withPage(search, page), true)}
         />
